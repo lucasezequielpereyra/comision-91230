@@ -6,6 +6,7 @@ export const tasks: Task[] = [
     title: 'Comprar pollo',
     description: 'Ir a la polleria a comprar 2kg de pechuga de pollo',
     time: 'month',
+    category: 'Personal',
     done: false
   },
   {
@@ -13,6 +14,7 @@ export const tasks: Task[] = [
     title: 'Comprar pan',
     description: 'Ir a la panaderia a comprar 1kg de pan',
     time: 'today',
+    category: 'Personal',
     done: true
   },
   {
@@ -20,6 +22,7 @@ export const tasks: Task[] = [
     title: 'Comprar leche',
     description: 'Ir al supermercado a comprar 2 litros de leche',
     time: 'tomorrow',
+    category: 'Personal',
     done: false
   },
   {
@@ -27,6 +30,7 @@ export const tasks: Task[] = [
     title: 'Comprar huevos',
     description: 'Ir al supermercado a comprar 12 huevos',
     time: 'week',
+    category: 'Personal',
     done: false
   }
 ]
