@@ -1,0 +1,1388 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cómo funcionan las listas en React Native · Clase 4</title>
+<style>
+  :root {
+    --canvas:#F6F1E7; --surface:#FFFFFF; --ink:#211710; --muted:#7A6E60;
+    --border:#E3D9C9; --primary:#FF5A2D; --primary-soft:#FFE9E1; --dark:#2A1008;
+    --ok:#1F8A5B; --ok-soft:#E1F3EA; --bad:#C93A3A; --bad-soft:#FBE7E7;
+    --info:#4A6CF0; --info-soft:#E8ECFE; --code-bg:#FBF7F1;
+    --shadow:0 2px 10px rgba(42,16,8,.07);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --canvas:#171310; --surface:#211B16; --ink:#F2EBE2; --muted:#A2988B;
+      --border:#3A2F26; --primary:#FF7A50; --primary-soft:#3B1E13; --dark:#F2EBE2;
+      --ok:#4FC08D; --ok-soft:#15301F; --bad:#F0736F; --bad-soft:#331819;
+      --info:#8AA0FF; --info-soft:#1B2140; --code-bg:#1A1511;
+      --shadow:0 2px 10px rgba(0,0,0,.35);
+    }
+  }
+  * { box-sizing:border-box; }
+  html { scroll-behavior:smooth; }
+  body {
+    margin:0; background:var(--canvas); color:var(--ink);
+    font-family:"Plus Jakarta Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
+    font-size:16px; line-height:1.65;
+  }
+  .wrap { max-width:960px; margin:0 auto; padding:0 24px 96px; }
+
+  /* ── Portada ── */
+  header.hero {
+    background:var(--dark); color:var(--canvas); padding:64px 24px 56px; margin-bottom:48px;
+  }
+  @media (prefers-color-scheme: dark) { header.hero { background:#0D0A08; color:#F2EBE2; } }
+  .hero-inner { max-width:960px; margin:0 auto; }
+  .kicker { color:var(--primary); font-weight:700; letter-spacing:3px; text-transform:uppercase; font-size:13px; }
+  .hero h1 { font-size:clamp(32px,6vw,52px); line-height:1.08; margin:16px 0 0; font-weight:800; letter-spacing:-1px; }
+  .hero h1 em { font-style:normal; color:var(--primary); }
+  .hero p { max-width:640px; margin:20px 0 0; opacity:.85; font-size:17px; }
+  .hero nav { margin-top:32px; display:flex; flex-wrap:wrap; gap:8px; }
+  .hero nav a {
+    color:inherit; text-decoration:none; border:1px solid rgba(255,255,255,.22);
+    border-radius:999px; padding:6px 16px; font-size:13.5px; font-weight:600; transition:.15s;
+  }
+  @media (prefers-color-scheme: dark) { .hero nav a { border-color:rgba(255,255,255,.16); } }
+  .hero nav a:hover { background:var(--primary); border-color:var(--primary); color:#fff; }
+
+  /* ── Estructura ── */
+  section { margin-bottom:72px; scroll-margin-top:24px; }
+  .sec-num {
+    display:inline-block; background:var(--primary); color:#fff; font-weight:800;
+    font-size:12px; letter-spacing:1px; padding:4px 12px; border-radius:999px; text-transform:uppercase;
+  }
+  h2 { font-size:clamp(24px,4vw,32px); font-weight:800; margin:14px 0 6px; letter-spacing:-.5px; line-height:1.2; }
+  h3 { font-size:19px; font-weight:800; margin:36px 0 10px; }
+  h4 { font-size:15px; font-weight:800; margin:24px 0 8px; color:var(--primary); }
+  .lede { color:var(--muted); font-size:17px; margin:0 0 24px; }
+  p { margin:0 0 16px; }
+  ul,ol { margin:0 0 16px; padding-left:22px; }
+  li { margin-bottom:8px; }
+  hr { border:none; border-top:1px solid var(--border); margin:56px 0; }
+
+  code, pre, .t-mono, .keyinfo, .vnum, .m-value {
+    /* sin ligaduras: en material didáctico "=>" y "===" tienen que verse literales */
+    font-variant-ligatures:none; -webkit-font-variant-ligatures:none;
+  }
+  code {
+    font-family:"SF Mono","JetBrains Mono",Menlo,Consolas,monospace; font-size:.88em;
+    background:var(--code-bg); border:1px solid var(--border); border-radius:4px;
+    padding:1px 5px; color:var(--primary);
+  }
+  pre {
+    font-family:"SF Mono","JetBrains Mono",Menlo,Consolas,monospace;
+    background:var(--code-bg); border:1px solid var(--border); border-left:3px solid var(--primary);
+    border-radius:8px; padding:16px 18px; font-size:13.5px; line-height:1.6;
+    overflow-x:auto; margin:0 0 20px;
+  }
+  pre code { background:none; border:none; padding:0; color:inherit; font-size:inherit; }
+  pre .c { color:var(--muted); font-style:italic; }
+  pre .bad-line { color:var(--bad); font-weight:700; }
+  pre .ok-line { color:var(--ok); font-weight:700; }
+
+  /* ── Figuras ── */
+  figure { margin:28px 0 32px; }
+  figure svg { width:100%; height:auto; display:block; background:var(--surface);
+    border:1px solid var(--border); border-radius:12px; padding:12px; box-shadow:var(--shadow); }
+  figcaption { margin-top:12px; font-size:14px; color:var(--muted); line-height:1.55; }
+  figcaption b { color:var(--ink); }
+
+  /* Clases usadas dentro de los SVG (el CSS vive acá, fuera del fragmento) */
+  .d-box { fill:var(--surface); stroke:currentColor; stroke-width:1.5; }
+  .d-box-soft { fill:var(--primary-soft); stroke:var(--primary); stroke-width:1.5; }
+  .d-ok { fill:var(--ok-soft); stroke:var(--ok); stroke-width:1.5; }
+  .d-bad { fill:var(--bad-soft); stroke:var(--bad); stroke-width:1.5; }
+  .d-info { fill:var(--info-soft); stroke:var(--info); stroke-width:1.5; }
+  .d-ghost { fill:none; stroke:currentColor; stroke-width:1.2; stroke-dasharray:4 4; opacity:.45; }
+  .d-line { stroke:currentColor; stroke-width:1.6; fill:none; }
+  .d-line-ok { stroke:var(--ok); stroke-width:1.8; fill:none; }
+  .d-line-bad { stroke:var(--bad); stroke-width:1.8; fill:none; }
+  .d-divider { stroke:currentColor; stroke-width:1.2; stroke-dasharray:6 5; opacity:.4; }
+  .t { fill:currentColor; font-size:13px; font-family:inherit; }
+  .t-sm { fill:currentColor; font-size:11.5px; font-family:inherit; opacity:.75; }
+  .t-b { fill:currentColor; font-size:13.5px; font-weight:700; font-family:inherit; }
+  .t-head { fill:currentColor; font-size:12px; font-weight:800; font-family:inherit;
+    letter-spacing:1px; text-transform:uppercase; opacity:.6; }
+  .t-mono { fill:currentColor; font-size:11.5px; font-family:"SF Mono",Menlo,monospace; }
+  .t-ok { fill:var(--ok); font-size:12.5px; font-weight:700; font-family:inherit; }
+  .t-bad { fill:var(--bad); font-size:12.5px; font-weight:700; font-family:inherit; }
+  .t-primary { fill:var(--primary); font-size:12.5px; font-weight:700; font-family:inherit; }
+
+  /* ── Cajas de contenido ── */
+  .box { border:1px solid var(--border); border-radius:10px; padding:18px 20px; margin:0 0 20px;
+    background:var(--surface); box-shadow:var(--shadow); }
+  .box .box-t { font-weight:800; font-size:15px; margin-bottom:8px; }
+  .box p:last-child, .box ul:last-child { margin-bottom:0; }
+  .box.key { border-left:4px solid var(--primary); }
+  .box.key .box-t { color:var(--primary); }
+  .box.warn { border-left:4px solid var(--bad); }
+  .box.warn .box-t { color:var(--bad); }
+  .box.good { border-left:4px solid var(--ok); }
+  .box.good .box-t { color:var(--ok); }
+
+  .cols { display:grid; grid-template-columns:1fr 1fr; gap:18px; margin-bottom:20px; }
+  @media (max-width:720px) { .cols { grid-template-columns:1fr; } }
+
+  table { width:100%; border-collapse:collapse; font-size:14.5px; margin:0 0 20px;
+    background:var(--surface); border-radius:10px; overflow:hidden; box-shadow:var(--shadow); }
+  th { background:var(--dark); color:var(--canvas); text-align:left; padding:11px 14px;
+    font-size:12px; text-transform:uppercase; letter-spacing:.6px; }
+  @media (prefers-color-scheme: dark) { th { background:#0D0A08; color:#F2EBE2; } }
+  td { padding:11px 14px; border-bottom:1px solid var(--border); vertical-align:top; }
+  tr:last-child td { border-bottom:none; }
+
+  /* ── Demos interactivas ── */
+  .demo { border:2px solid var(--primary); border-radius:12px; background:var(--surface);
+    padding:20px; margin:28px 0; box-shadow:var(--shadow); }
+  .demo-head { display:flex; align-items:center; gap:10px; margin-bottom:6px; }
+  .demo-tag { background:var(--primary); color:#fff; font-size:11px; font-weight:800;
+    letter-spacing:1px; text-transform:uppercase; padding:3px 10px; border-radius:999px; }
+  .demo-head h3 { margin:0; font-size:17px; }
+  .demo-sub { color:var(--muted); font-size:14px; margin:0 0 18px; }
+  .controls { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:16px; }
+  button {
+    font:inherit; font-size:14px; font-weight:700; cursor:pointer;
+    background:var(--dark); color:var(--canvas); border:none; border-radius:8px; padding:9px 16px;
+    transition:.15s;
+  }
+  @media (prefers-color-scheme: dark) { button { background:var(--primary); color:#1A1108; } }
+  button:hover { opacity:.85; }
+  button.ghost { background:transparent; color:var(--ink); border:1.5px solid var(--border); }
+  button.ghost:hover { border-color:var(--primary); color:var(--primary); }
+  .seg { display:inline-flex; background:var(--code-bg); border:1.5px solid var(--border);
+    border-radius:999px; padding:3px; gap:3px; }
+  .seg button { background:transparent; color:var(--muted); border-radius:999px; padding:6px 16px; font-size:13.5px; }
+  .seg button[aria-pressed="true"] { background:var(--primary); color:#fff; }
+
+  .task-row { display:flex; align-items:center; gap:12px; padding:11px 14px; margin-bottom:8px;
+    border:1.5px solid var(--border); border-radius:9px; background:var(--surface); }
+  .task-row .mark { width:22px; height:22px; border-radius:50%; border:2px solid var(--muted);
+    display:grid; place-items:center; font-size:12px; font-weight:800; cursor:pointer; flex:none; }
+  .task-row.checked .mark { background:var(--ok); border-color:var(--ok); color:#fff; }
+  .task-row .label { font-weight:700; flex:1; }
+  .task-row .keyinfo { font-family:"SF Mono",Menlo,monospace; font-size:11.5px; color:var(--muted); }
+  .task-row.ghosted { opacity:.5; }
+
+  .metric-row { display:flex; flex-wrap:wrap; gap:12px; margin-bottom:14px; }
+  .metric { flex:1; min-width:150px; border:1.5px solid var(--border); border-radius:10px;
+    padding:12px 14px; background:var(--code-bg); }
+  .metric .m-label { font-size:11px; font-weight:800; text-transform:uppercase;
+    letter-spacing:.6px; color:var(--muted); }
+  .metric .m-value { font-size:26px; font-weight:800; line-height:1.2; margin-top:2px;
+    font-family:"SF Mono",Menlo,monospace; }
+  .metric.is-bad { border-color:var(--bad); background:var(--bad-soft); }
+  .metric.is-bad .m-value { color:var(--bad); }
+  .metric.is-ok { border-color:var(--ok); background:var(--ok-soft); }
+  .metric.is-ok .m-value { color:var(--ok); }
+
+  .viewport { height:280px; overflow-y:auto; border:2px solid var(--border);
+    border-radius:10px; background:var(--code-bg); position:relative; }
+  .vrow { height:44px; display:flex; align-items:center; gap:10px; padding:0 14px;
+    border-bottom:1px solid var(--border); font-size:14px; }
+  .vrow .vnum { font-family:"SF Mono",Menlo,monospace; font-size:11.5px; color:var(--muted);
+    min-width:32px; }
+  .note { font-size:13.5px; color:var(--muted); margin-top:12px; }
+  .note b { color:var(--ink); }
+
+  .check-list { list-style:none; padding-left:0; }
+  .check-list li { padding-left:28px; position:relative; margin-bottom:10px; }
+  .check-list li::before { content:"✓"; position:absolute; left:0; top:0; color:var(--ok);
+    font-weight:800; font-size:16px; }
+  .x-list { list-style:none; padding-left:0; }
+  .x-list li { padding-left:28px; position:relative; margin-bottom:10px; }
+  .x-list li::before { content:"✕"; position:absolute; left:0; top:0; color:var(--bad);
+    font-weight:800; font-size:15px; }
+
+  footer { border-top:1px solid var(--border); padding-top:24px; color:var(--muted); font-size:14px; }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="hero-inner">
+    <div class="kicker">Clase 4 · Desarrollo de Aplicaciones</div>
+    <h1>Cómo funcionan <em>las listas</em><br>en React Native</h1>
+    <p>
+      De un array de objetos a píxeles en la pantalla de un teléfono: el pipeline de renderizado,
+      por qué React exige una <code style="background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.2);color:inherit">key</code>,
+      qué significa realmente "virtualizar" una lista y cómo se conecta la lista con la pantalla de detalle.
+    </p>
+    <nav>
+      <a href="#pipeline">1 · El pipeline</a>
+      <a href="#map">2 · map()</a>
+      <a href="#keys">3 · Keys</a>
+      <a href="#inmutable">4 · Inmutabilidad</a>
+      <a href="#virtual">5 · Virtualización</a>
+      <a href="#anatomia">6 · Anatomía</a>
+      <a href="#detalle">7 · Master-Detail</a>
+      <a href="#rota">8 · La lista rota</a>
+      <a href="#mapa">9 · El código</a>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap">
+
+<!-- ═══════════ 1 ═══════════ -->
+<section id="pipeline">
+  <span class="sec-num">Sección 1</span>
+  <h2>El pipeline: de datos a píxeles</h2>
+  <p class="lede">
+    Antes de tocar una sola prop de <code>FlatList</code>, hay que ver el camino completo que recorre
+    un dato hasta convertirse en algo que se toca con el dedo.
+  </p>
+
+  <p>
+    La confusión más común al venir de la web es pensar que React Native dibuja HTML dentro de un
+    navegador escondido. No es así. Tu código JavaScript <b>describe</b> qué quiere ver, y la plataforma
+    construye componentes nativos reales: un <code>UIView</code> en iOS, un <code>android.view</code> en Android.
+    Entre esos dos mundos hay una frontera, y todo lo que aprendemos hoy existe para <b>cruzarla lo menos posible</b>.
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 900 300" role="img" aria-label="Pipeline de renderizado: un array de objetos JavaScript pasa por map o FlatList, se convierte en elementos React, la reconciliación decide los cambios mínimos y recién ahí se crean las vistas nativas al otro lado de la frontera entre el hilo de JavaScript y el hilo principal de interfaz.">
+      <defs>
+        <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"/>
+        </marker>
+      </defs>
+
+      <text class="t-head" x="24" y="28">Hilo de JavaScript — donde vive tu código</text>
+      <text class="t-head" x="700" y="28" text-anchor="middle">Hilo principal (UI)</text>
+
+      <!-- frontera -->
+      <line class="d-divider" x1="628" y1="42" x2="628" y2="278"/>
+
+      <!-- 1. datos -->
+      <rect class="d-box" x="24" y="90" width="150" height="76" rx="9"/>
+      <text class="t-b" x="99" y="120" text-anchor="middle">1 · Los datos</text>
+      <text class="t-sm" x="99" y="140" text-anchor="middle">array de objetos</text>
+      <text class="t-mono" x="99" y="196" text-anchor="middle">[{ id: 'a1',</text>
+      <text class="t-mono" x="99" y="212" text-anchor="middle">title: 'Comprar' }]</text>
+
+      <!-- flecha -->
+      <line class="d-line" x1="180" y1="128" x2="216" y2="128" marker-end="url(#ar)"/>
+      <text class="t-sm" x="198" y="80" text-anchor="middle">proyecta</text>
+
+      <!-- 2. transformación -->
+      <rect class="d-box-soft" x="222" y="90" width="150" height="76" rx="9"/>
+      <text class="t-b" x="297" y="120" text-anchor="middle">2 · Transformación</text>
+      <text class="t-sm" x="297" y="140" text-anchor="middle">.map() / FlatList</text>
+      <text class="t-mono" x="297" y="196" text-anchor="middle">un dato</text>
+      <text class="t-mono" x="297" y="212" text-anchor="middle">→ un componente</text>
+
+      <line class="d-line" x1="378" y1="128" x2="414" y2="128" marker-end="url(#ar)"/>
+      <text class="t-sm" x="396" y="80" text-anchor="middle">devuelve</text>
+
+      <!-- 3. elementos react -->
+      <rect class="d-box" x="420" y="90" width="150" height="76" rx="9"/>
+      <text class="t-b" x="495" y="120" text-anchor="middle">3 · Elementos</text>
+      <text class="t-sm" x="495" y="140" text-anchor="middle">árbol de JSX</text>
+      <text class="t-mono" x="495" y="196" text-anchor="middle">&lt;TaskItem key="a1" /&gt;</text>
+      <text class="t-sm" x="495" y="214" text-anchor="middle">todavía son objetos JS</text>
+
+      <!-- flecha cruzando la frontera -->
+      <line class="d-line" x1="576" y1="128" x2="672" y2="128" marker-end="url(#ar)"/>
+      <text class="t-primary" x="624" y="80" text-anchor="middle">reconciliación</text>
+      <text class="t-sm" x="624" y="98" text-anchor="middle">solo el diff</text>
+
+      <!-- 4. nativo -->
+      <rect class="d-box-soft" x="678" y="90" width="196" height="76" rx="9"/>
+      <text class="t-b" x="776" y="120" text-anchor="middle">4 · Vistas nativas</text>
+      <text class="t-sm" x="776" y="140" text-anchor="middle">UIView · android.view</text>
+      <text class="t-mono" x="776" y="196" text-anchor="middle">píxeles reales</text>
+      <text class="t-sm" x="776" y="214" text-anchor="middle">esto es lo que cuesta caro</text>
+
+      <!-- nota inferior -->
+      <text class="t-sm" x="24" y="262">Cada vista nativa consume memoria y tiempo de creación.</text>
+      <text class="t-sm" x="24" y="280">Todo el trabajo de optimización consiste en crear la menor cantidad posible, y reusarlas.</text>
+    </svg>
+    <figcaption>
+      <b>El paso 4 es el caro.</b> Los pasos 1 a 3 son objetos JavaScript baratos; crear vistas nativas
+      no lo es. Por eso React no redibuja todo: la reconciliación compara el árbol nuevo con el anterior
+      y manda al otro lado <em>solo las diferencias</em>. Y por eso <code>FlatList</code> existe: para que
+      esas diferencias sean también las mínimas posibles.
+    </figcaption>
+  </figure>
+
+  <div class="box key">
+    <div class="box-t">La frase para llevarse de esta sección</div>
+    <p>
+      La interfaz no se dibuja: se <b>declara</b>. Vos no le decís al teléfono "poné un rectángulo acá";
+      le decís "dados estos datos, así se ve la pantalla". Si los datos cambian, la pantalla cambia sola.
+    </p>
+  </div>
+</section>
+
+<hr>
+
+<!-- ═══════════ 2 ═══════════ -->
+<section id="map">
+  <span class="sec-num">Sección 2</span>
+  <h2><code>map()</code>: la fábrica de componentes</h2>
+  <p class="lede">
+    El paso 2 del pipeline en detalle: cómo se transforma cada dato en su representación visual.
+  </p>
+
+  <p>
+    Cuando arrancamos, tendemos a escribir la interfaz de forma estática: si hay tres tareas, escribimos
+    tres tarjetas a mano. Funciona hasta que el usuario tiene cien tareas. O ninguna.
+  </p>
+  <p>
+    La alternativa es pensar en <b>proyección de datos</b>. Imaginá <code>map()</code> como una línea de
+    ensamblaje: por un lado entra materia prima (un objeto con un título y una fecha), la máquina la
+    envuelve en una estructura visual —un borde, un botón, un estilo— y por el otro lado sale el producto
+    terminado: una tarjeta lista para tocar.
+  </p>
+
+  <div class="cols">
+    <div class="box warn">
+      <div class="box-t">Estático — no escala</div>
+      <pre style="margin:0;border-left:none;background:transparent;border:none;padding:0;font-size:12.5px"><code>&lt;Tarea title="Comprar café" /&gt;
+&lt;Tarea title="Revisar PR" /&gt;
+&lt;Tarea title="Llamar al médico" /&gt;
+
+<span class="c">// ¿y si hay 100? ¿y si hay 0?
+// ¿y si el usuario agrega una?</span></code></pre>
+    </div>
+    <div class="box good">
+      <div class="box-t">Proyectado — escala solo</div>
+      <pre style="margin:0;border-left:none;background:transparent;border:none;padding:0;font-size:12.5px"><code>{tasks.map(task =&gt; (
+  &lt;Tarea
+    key={task.id}
+    title={task.title}
+  /&gt;
+))}
+
+<span class="c">// 0, 3 o 10.000: el mismo código</span></code></pre>
+    </div>
+  </div>
+
+  <p>
+    Ese cambio de mentalidad es todo: dejamos de escribir componentes y empezamos a escribir
+    <b>una plantilla</b> más <b>una fuente de datos</b>. Agregar una tarea al array hace aparecer la tarjeta;
+    quitarla la hace desaparecer. Nunca tocamos la pantalla directamente.
+  </p>
+
+  <div class="box">
+    <div class="box-t">Un detalle que confunde: <code>for</code> no sirve acá</div>
+    <p>
+      Dentro del JSX necesitamos una <b>expresión que devuelva un valor</b>. Un <code>for</code> tradicional
+      es una sentencia: no devuelve nada. <code>map()</code> sí devuelve un array nuevo, y React sabe
+      renderizar un array de elementos. Por eso el patrón es siempre <code>map</code>, no <code>for</code>.
+    </p>
+  </div>
+</section>
+
+<hr>
+
+<!-- ═══════════ 3 ═══════════ -->
+<section id="keys">
+  <span class="sec-num">Sección 3</span>
+  <h2>Las <code>key</code>: el DNI de cada componente</h2>
+  <p class="lede">
+    El concepto más incomprendido de React, y la causa del bug más difícil de rastrear que van a
+    encontrar en toda la cursada.
+  </p>
+
+  <p>
+    Todos vimos alguna vez ese warning amarillo: <em>"Each child in a list should have a unique key prop"</em>.
+    La reacción típica es callarlo poniendo <code>key={index}</code> y seguir. Vamos a ver exactamente
+    qué se rompe cuando hacemos eso.
+  </p>
+  <p>
+    Primero, lo importante: <b>la key no es para vos</b>. Nunca la vas a leer en tu código. Es para el
+    algoritmo de <b>reconciliación</b> de React, que necesita responder una pregunta cada vez que la lista
+    cambia: <em>"este componente que tengo en pantalla, ¿es el mismo que antes, o es otro distinto?"</em>
+  </p>
+  <p>
+    La respuesta importa porque los componentes tienen <b>estado interno</b> —un checkbox marcado, el texto
+    a medio escribir en un input, una animación a mitad de camino. Si React se equivoca de identidad,
+    ese estado se le queda pegado al componente equivocado.
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 900 470" role="img" aria-label="Comparación de la reconciliación al eliminar el primer elemento de una lista de tres. Con key igual al índice, React reusa los componentes por posición y el estado interno se corre al vecino: el check que estaba en B aparece en C. Con key igual al id, React identifica que el elemento A desapareció, destruye solo ese componente y B y C conservan su estado.">
+      <defs>
+        <marker id="ar2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"/>
+        </marker>
+        <marker id="ar-ok" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--ok)"/>
+        </marker>
+        <marker id="ar-bad" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--bad)"/>
+        </marker>
+      </defs>
+
+      <text class="t-head" x="24" y="24">Punto de partida en los dos casos: 3 tareas · B tiene su checkbox marcado · borramos A</text>
+
+      <!-- ══ BLOQUE 1: key=index ══ -->
+      <text class="t-bad" x="24" y="60">key={index}  →  el estado se corre al vecino</text>
+
+      <!-- antes -->
+      <text class="t-sm" x="24" y="84">antes</text>
+      <rect class="d-box" x="24" y="92" width="150" height="34" rx="6"/>
+      <text class="t" x="38" y="114">A</text><text class="t-mono" x="152" y="114" text-anchor="end">key 0</text>
+      <rect class="d-ok" x="24" y="132" width="150" height="34" rx="6"/>
+      <text class="t" x="38" y="154">B  ✓</text><text class="t-mono" x="152" y="154" text-anchor="end">key 1</text>
+      <rect class="d-box" x="24" y="172" width="150" height="34" rx="6"/>
+      <text class="t" x="38" y="194">C</text><text class="t-mono" x="152" y="194" text-anchor="end">key 2</text>
+
+      <!-- flecha -->
+      <line class="d-line" x1="186" y1="149" x2="238" y2="149" marker-end="url(#ar2)"/>
+      <text class="t-sm" x="212" y="140" text-anchor="middle">borrar A</text>
+
+      <!-- después -->
+      <text class="t-sm" x="250" y="84">después</text>
+      <rect class="d-box" x="250" y="92" width="150" height="34" rx="6"/>
+      <text class="t" x="264" y="114">B</text><text class="t-mono" x="378" y="114" text-anchor="end">key 0</text>
+      <rect class="d-bad" x="250" y="132" width="150" height="34" rx="6"/>
+      <text class="t" x="264" y="154">C  ✓</text><text class="t-mono" x="378" y="154" text-anchor="end">key 1</text>
+      <rect class="d-ghost" x="250" y="172" width="150" height="34" rx="6"/>
+      <text class="t-sm" x="325" y="194" text-anchor="middle">destruido</text>
+
+      <!-- razonamiento -->
+      <line class="d-line-bad" x1="176" y1="109" x2="248" y2="109" marker-end="url(#ar-bad)" opacity=".55"/>
+      <line class="d-line-bad" x1="176" y1="149" x2="248" y2="149" marker-end="url(#ar-bad)" opacity=".55"/>
+
+      <text class="t-b" x="424" y="104">Lo que razona React:</text>
+      <text class="t-sm" x="424" y="126">«key 0 sigue existiendo → es el mismo componente,</text>
+      <text class="t-sm" x="424" y="143">solo le cambió el texto de A a B.» Lo reusa.</text>
+      <text class="t-sm" x="424" y="166">«key 1 sigue existiendo → mismo componente.»</text>
+      <text class="t-sm" x="424" y="183">Reusa el de B —que tenía el check— para mostrar C.</text>
+      <text class="t-bad" x="424" y="208">Resultado: el ✓ saltó de B a C. Nadie lo pidió.</text>
+
+      <!-- separador -->
+      <line class="d-divider" x1="24" y1="238" x2="876" y2="238"/>
+
+      <!-- ══ BLOQUE 2: key=id ══ -->
+      <text class="t-ok" x="24" y="272">key={task.id}  →  cada componente conserva lo suyo</text>
+
+      <text class="t-sm" x="24" y="296">antes</text>
+      <rect class="d-box" x="24" y="304" width="150" height="34" rx="6"/>
+      <text class="t" x="38" y="326">A</text><text class="t-mono" x="152" y="326" text-anchor="end">key a1</text>
+      <rect class="d-ok" x="24" y="344" width="150" height="34" rx="6"/>
+      <text class="t" x="38" y="366">B  ✓</text><text class="t-mono" x="152" y="366" text-anchor="end">key b2</text>
+      <rect class="d-box" x="24" y="384" width="150" height="34" rx="6"/>
+      <text class="t" x="38" y="406">C</text><text class="t-mono" x="152" y="406" text-anchor="end">key c3</text>
+
+      <line class="d-line" x1="186" y1="361" x2="238" y2="361" marker-end="url(#ar2)"/>
+      <text class="t-sm" x="212" y="352" text-anchor="middle">borrar A</text>
+
+      <text class="t-sm" x="250" y="296">después</text>
+      <rect class="d-ghost" x="250" y="304" width="150" height="34" rx="6"/>
+      <text class="t-sm" x="325" y="326" text-anchor="middle">a1 destruido</text>
+      <rect class="d-ok" x="250" y="344" width="150" height="34" rx="6"/>
+      <text class="t" x="264" y="366">B  ✓</text><text class="t-mono" x="378" y="366" text-anchor="end">key b2</text>
+      <rect class="d-box" x="250" y="384" width="150" height="34" rx="6"/>
+      <text class="t" x="264" y="406">C</text><text class="t-mono" x="378" y="406" text-anchor="end">key c3</text>
+
+      <!-- las identidades se mueven intactas -->
+      <path class="d-line-ok" d="M 176 361 L 210 361 L 210 361 L 244 361" marker-end="url(#ar-ok)"/>
+      <path class="d-line-ok" d="M 176 401 L 244 401" marker-end="url(#ar-ok)"/>
+
+      <text class="t-b" x="424" y="316">Lo que razona React:</text>
+      <text class="t-sm" x="424" y="338">«La key a1 ya no está en la lista nueva.»</text>
+      <text class="t-sm" x="424" y="355">Destruye exactamente ese componente.</text>
+      <text class="t-sm" x="424" y="378">«b2 y c3 siguen ahí, solo cambiaron de posición.»</text>
+      <text class="t-sm" x="424" y="395">Los mueve enteros, con su estado adentro.</text>
+      <text class="t-ok" x="424" y="420">Resultado: el ✓ sigue en B. Como corresponde.</text>
+    </svg>
+    <figcaption>
+      <b>La diferencia no es de rendimiento, es de corrección.</b> Con <code>key={index}</code> la lista
+      "funciona" —los textos se ven bien— pero el estado interno de los componentes queda desalineado.
+      Es un bug silencioso: no rompe nada visible hasta que el usuario reordena, filtra o borra.
+    </figcaption>
+  </figure>
+
+  <!-- DEMO 1 -->
+  <div class="demo">
+    <div class="demo-head">
+      <span class="demo-tag">Demo en vivo</span>
+      <h3>Probalo vos: marcá un check y borrá una tarea de arriba</h3>
+    </div>
+    <p class="demo-sub">
+      El check es <b>estado interno del componente</b>, no del dato — igual que un input a medio escribir.
+      Cambiá la estrategia de key y repetí la operación.
+    </p>
+
+    <div class="controls">
+      <div class="seg" role="group" aria-label="Estrategia de key">
+        <button id="k-index" aria-pressed="true">key = index</button>
+        <button id="k-id" aria-pressed="false">key = task.id</button>
+      </div>
+      <button class="ghost" id="k-reset">Reiniciar</button>
+    </div>
+
+    <div id="k-list"></div>
+    <p class="note" id="k-note"></p>
+  </div>
+
+  <div class="box warn">
+    <div class="box-t">Las dos keys que nunca hay que usar</div>
+    <ul style="margin-bottom:0">
+      <li>
+        <b><code>Math.random()</code></b> — genera una key distinta en <em>cada</em> render. React concluye
+        que todos los elementos son nuevos siempre: destruye y recrea la lista entera en cada cambio.
+        Adiós rendimiento, adiós foco del teclado.
+      </li>
+      <li>
+        <b>El índice del array</b> — el caso que acabamos de ver. Solo es aceptable si la lista es estática:
+        nunca se reordena, nunca se filtra, nunca se borra del medio. En TaskFlow no aplica.
+      </li>
+    </ul>
+  </div>
+
+  <div class="box good">
+    <div class="box-t">La regla de oro</div>
+    <p>
+      Un ID único que venga de la fuente de datos (base de datos, API) o generado <b>una sola vez</b>
+      en el momento de crear el elemento —un UUID, o un timestamp más un sufijo aleatorio. La clave está
+      en <em>cuándo</em> se genera: al crear el dato, no al renderizarlo.
+    </p>
+  </div>
+</section>
+
+<hr>
+
+<!-- ═══════════ 4 ═══════════ -->
+<section id="inmutable">
+  <span class="sec-num">Sección 4</span>
+  <h2>Inmutabilidad: por qué <code>map</code> y nunca <code>push</code></h2>
+  <p class="lede">
+    El segundo bug clásico: "marco la tarea como completada, el estado cambia… pero la pantalla no se
+    entera".
+  </p>
+
+  <p>
+    React no inspecciona el contenido de tus objetos para ver si algo cambió — sería carísimo hacerlo en
+    cada render. Lo que hace es <b>comparar referencias</b>: ¿el array que me pasás ahora es el mismo objeto
+    en memoria que el que tenía antes? Si es el mismo, asume que nada cambió y no vuelve a renderizar.
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 900 430" role="img" aria-label="Comparación entre mutar el array y usar map. Al mutar, el array conserva la misma referencia en memoria, la comparación de React da igual y no se re-renderiza. Al usar map se crea un array nuevo donde solo el objeto modificado es nuevo y los otros tres conservan su referencia original, de modo que React re-renderiza la lista pero memo evita repintar los ítems que no cambiaron.">
+      <defs>
+        <marker id="ar3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"/>
+        </marker>
+      </defs>
+
+      <!-- ══ MUTACIÓN ══ -->
+      <text class="t-bad" x="24" y="28">Mutar el array — la pantalla no se actualiza</text>
+      <text class="t-mono" x="24" y="50">tasks[1].completed = true;  setTasks(tasks)</text>
+
+      <text class="t-sm" x="24" y="84">array</text>
+      <rect class="d-bad" x="24" y="92" width="220" height="36" rx="6"/>
+      <text class="t-mono" x="134" y="115" text-anchor="middle">tasks  →  0xA7</text>
+
+      <line class="d-line" x1="256" y1="110" x2="300" y2="110" marker-end="url(#ar3)"/>
+      <text class="t-sm" x="278" y="101" text-anchor="middle">setTasks</text>
+
+      <rect class="d-box" x="312" y="86" width="250" height="48" rx="6"/>
+      <text class="t" x="437" y="106" text-anchor="middle">React compara referencias</text>
+      <text class="t-mono" x="437" y="124" text-anchor="middle">0xA7 === 0xA7</text>
+
+      <line class="d-line" x1="574" y1="110" x2="618" y2="110" marker-end="url(#ar3)"/>
+
+      <rect class="d-bad" x="630" y="86" width="246" height="48" rx="6"/>
+      <text class="t-bad" x="753" y="106" text-anchor="middle">«Es el mismo array.»</text>
+      <text class="t-sm" x="753" y="124" text-anchor="middle">No re-renderiza. Pantalla congelada.</text>
+
+      <text class="t-sm" x="24" y="152">El dato cambió por dentro, pero la caja que lo contiene es la misma. React nunca mira adentro.</text>
+
+      <line class="d-divider" x1="24" y1="180" x2="876" y2="180"/>
+
+      <!-- ══ MAP ══ -->
+      <text class="t-ok" x="24" y="212">Proyectar con map — array nuevo, referencias preservadas</text>
+      <text class="t-mono" x="24" y="234">setTasks(prev =&gt; prev.map(t =&gt; t.id === id ? { ...t, completed: !t.completed } : t))</text>
+
+      <!-- array viejo -->
+      <text class="t-sm" x="24" y="272">antes  ·  0xA7</text>
+      <rect class="d-box" x="24" y="280" width="52" height="34" rx="5"/>
+      <text class="t-mono" x="50" y="302" text-anchor="middle">t0</text>
+      <rect class="d-box" x="80" y="280" width="52" height="34" rx="5"/>
+      <text class="t-mono" x="106" y="302" text-anchor="middle">t1</text>
+      <rect class="d-box" x="136" y="280" width="52" height="34" rx="5"/>
+      <text class="t-mono" x="162" y="302" text-anchor="middle">t2</text>
+      <rect class="d-box" x="192" y="280" width="52" height="34" rx="5"/>
+      <text class="t-mono" x="218" y="302" text-anchor="middle">t3</text>
+
+      <line class="d-line" x1="256" y1="297" x2="300" y2="297" marker-end="url(#ar3)"/>
+      <text class="t-sm" x="278" y="288" text-anchor="middle">.map()</text>
+
+      <!-- array nuevo -->
+      <text class="t-sm" x="312" y="272">después  ·  0xB3  (array nuevo)</text>
+      <rect class="d-box" x="312" y="280" width="52" height="34" rx="5"/>
+      <text class="t-mono" x="338" y="302" text-anchor="middle">t0</text>
+      <rect class="d-box-soft" x="368" y="280" width="52" height="34" rx="5"/>
+      <text class="t-mono" x="394" y="302" text-anchor="middle">t1′</text>
+      <rect class="d-box" x="424" y="280" width="52" height="34" rx="5"/>
+      <text class="t-mono" x="450" y="302" text-anchor="middle">t2</text>
+      <rect class="d-box" x="480" y="280" width="52" height="34" rx="5"/>
+      <text class="t-mono" x="506" y="302" text-anchor="middle">t3</text>
+
+      <!-- referencias compartidas -->
+      <path class="d-line-ok" d="M 50 322 L 50 340 L 338 340 L 338 322" marker-end="url(#ar-ok)" opacity=".6"/>
+      <path class="d-line-ok" d="M 162 322 L 162 352 L 450 352 L 450 322" marker-end="url(#ar-ok)" opacity=".6"/>
+      <path class="d-line-ok" d="M 218 322 L 218 364 L 506 364 L 506 322" marker-end="url(#ar-ok)" opacity=".6"/>
+      <text class="t-ok" x="24" y="386">t0, t2 y t3 conservan su referencia — no se copiaron, se compartieron</text>
+      <text class="t-primary" x="532" y="386" text-anchor="start">t1′ es el único objeto nuevo</text>
+
+      <!-- consecuencia -->
+      <rect class="d-ok" x="566" y="252" width="310" height="90" rx="8"/>
+      <text class="t-b" x="581" y="274">Doble beneficio</text>
+      <text class="t-sm" x="581" y="295">1 · El array es otro → React re-renderiza la lista.</text>
+      <text class="t-sm" x="581" y="313">2 · t0, t2 y t3 son los mismos objetos → memo()</text>
+      <text class="t-sm" x="596" y="330">los saltea. Solo se repinta una fila.</text>
+
+      <text class="t-sm" x="24" y="414">Inmutabilidad y memoización no son dos temas distintos: son el mismo mecanismo visto desde los dos lados.</text>
+    </svg>
+    <figcaption>
+      <b>La copia es superficial, y eso es exactamente lo que queremos.</b> <code>map</code> devuelve un array
+      nuevo, pero los objetos que no tocamos siguen siendo <em>los mismos objetos</em>. Eso le permite a
+      React saber que la lista cambió y, al mismo tiempo, que 3 de las 4 filas no necesitan repintarse.
+    </figcaption>
+  </figure>
+
+  <div class="cols">
+    <div class="box warn">
+      <div class="box-t">Métodos que mutan — evitar sobre el estado</div>
+      <ul class="x-list" style="margin-bottom:0">
+        <li><code>push()</code> / <code>pop()</code></li>
+        <li><code>splice()</code></li>
+        <li><code>sort()</code> / <code>reverse()</code></li>
+        <li>Asignación directa: <code>tasks[i].done = true</code></li>
+      </ul>
+    </div>
+    <div class="box good">
+      <div class="box-t">Métodos que devuelven copia — usar estos</div>
+      <ul class="check-list" style="margin-bottom:0">
+        <li><code>map()</code> — modificar un elemento</li>
+        <li><code>filter()</code> — eliminar</li>
+        <li><code>[nuevo, ...prev]</code> — agregar</li>
+        <li><code>{ ...obj, campo: valor }</code> — un objeto</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="box">
+    <div class="box-t">¿Y si necesito ordenar?</div>
+    <p>
+      <code>sort()</code> muta el array sobre el que se llama. La forma segura es copiar primero:
+      <code>[...tasks].sort(...)</code>. Es un error muy común porque <code>sort</code> <em>además</em>
+      devuelve el array — parece que funciona como <code>map</code>, pero devuelve el mismo array que mutó.
+    </p>
+  </div>
+</section>
+
+<hr>
+
+<!-- ═══════════ 5 ═══════════ -->
+<section id="virtual">
+  <span class="sec-num">Sección 5</span>
+  <h2>Virtualización: qué hace <code>FlatList</code> que <code>ScrollView</code> no</h2>
+  <p class="lede">
+    La razón por la que existe un componente de lista específico en React Native, y por qué en la web
+    nunca lo necesitamos.
+  </p>
+
+  <p>
+    En la web podemos meter mil <code>&lt;div&gt;</code> en el DOM y el navegador se las arregla. En móvil,
+    cada elemento se convierte en una <b>vista nativa real</b>, con su costo de memoria y de creación.
+    Mil tareas en un <code>ScrollView</code> son mil vistas nativas construidas antes de que el usuario
+    vea la primera.
+  </p>
+  <p>
+    <code>FlatList</code> resuelve esto con <b>windowing</b>: mantiene montadas solo las filas visibles más
+    un margen a cada lado, y a medida que hacés scroll <b>recicla</b> las que salen de pantalla para mostrar
+    las que entran. La lista puede tener diez mil ítems: en memoria siempre hay una docena.
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 900 420" role="img" aria-label="Comparación entre ScrollView y FlatList sobre la misma lista de catorce elementos. En ScrollView las catorce filas están montadas como vistas nativas aunque solo cinco sean visibles. En FlatList solo están montadas las cinco visibles más dos de margen arriba y abajo, y el resto no existe todavía en memoria.">
+      <text class="t-bad" x="24" y="26">ScrollView + .map()</text>
+      <text class="t-sm" x="24" y="46">monta todo al inicio</text>
+
+      <text class="t-ok" x="500" y="26">FlatList</text>
+      <text class="t-sm" x="500" y="46">monta solo la ventana</text>
+
+      <!-- ── ScrollView: 14 filas todas montadas ── -->
+      <rect class="d-bad" x="24" y="62" width="200" height="24" rx="4"/><text class="t-mono" x="34" y="79">tarea 1</text>
+      <rect class="d-bad" x="24" y="90" width="200" height="24" rx="4"/><text class="t-mono" x="34" y="107">tarea 2</text>
+      <rect class="d-bad" x="24" y="118" width="200" height="24" rx="4"/><text class="t-mono" x="34" y="135">tarea 3</text>
+      <rect class="d-bad" x="24" y="146" width="200" height="24" rx="4"/><text class="t-mono" x="34" y="163">tarea 4</text>
+      <rect class="d-bad" x="24" y="174" width="200" height="24" rx="4"/><text class="t-mono" x="34" y="191">tarea 5</text>
+      <rect class="d-bad" x="24" y="202" width="200" height="24" rx="4"/><text class="t-mono" x="34" y="219">tarea 6</text>
+      <rect class="d-bad" x="24" y="230" width="200" height="24" rx="4"/><text class="t-mono" x="34" y="247">tarea 7</text>
+      <rect class="d-bad" x="24" y="258" width="200" height="24" rx="4"/><text class="t-mono" x="34" y="275">tarea 8</text>
+      <rect class="d-bad" x="24" y="286" width="200" height="24" rx="4"/><text class="t-mono" x="34" y="303">tarea 9</text>
+      <rect class="d-bad" x="24" y="314" width="200" height="24" rx="4"/><text class="t-mono" x="34" y="331">tarea 10</text>
+      <rect class="d-bad" x="24" y="342" width="200" height="24" rx="4"/><text class="t-mono" x="34" y="359">…</text>
+
+      <!-- viewport scrollview -->
+      <rect x="16" y="140" width="216" height="120" rx="6" fill="none" stroke="var(--primary)" stroke-width="2.5"/>
+      <text class="t-primary" x="240" y="196">pantalla</text>
+
+      <text class="t-bad" x="24" y="392">todas las filas, montadas de una</text>
+      <text class="t-sm" x="24" y="410">incluidas las que el usuario nunca va a ver</text>
+
+      <!-- ── FlatList: solo ventana montada ── -->
+      <rect class="d-ghost" x="500" y="62" width="200" height="24" rx="4"/><text class="t-sm" x="510" y="79">no montado</text>
+      <rect class="d-ghost" x="500" y="90" width="200" height="24" rx="4"/><text class="t-sm" x="510" y="107">no montado</text>
+      <rect class="d-ok" x="500" y="118" width="200" height="24" rx="4"/><text class="t-mono" x="510" y="135">tarea 3</text>
+      <rect class="d-ok" x="500" y="146" width="200" height="24" rx="4"/><text class="t-mono" x="510" y="163">tarea 4</text>
+      <rect class="d-ok" x="500" y="174" width="200" height="24" rx="4"/><text class="t-mono" x="510" y="191">tarea 5</text>
+      <rect class="d-ok" x="500" y="202" width="200" height="24" rx="4"/><text class="t-mono" x="510" y="219">tarea 6</text>
+      <rect class="d-ok" x="500" y="230" width="200" height="24" rx="4"/><text class="t-mono" x="510" y="247">tarea 7</text>
+      <rect class="d-ok" x="500" y="258" width="200" height="24" rx="4"/><text class="t-mono" x="510" y="275">tarea 8</text>
+      <rect class="d-ok" x="500" y="286" width="200" height="24" rx="4"/><text class="t-mono" x="510" y="303">tarea 9</text>
+      <rect class="d-ghost" x="500" y="314" width="200" height="24" rx="4"/><text class="t-sm" x="510" y="331">no montado</text>
+      <rect class="d-ghost" x="500" y="342" width="200" height="24" rx="4"/><text class="t-sm" x="510" y="359">…</text>
+
+      <rect x="492" y="140" width="216" height="120" rx="6" fill="none" stroke="var(--primary)" stroke-width="2.5"/>
+      <text class="t-primary" x="716" y="158">pantalla</text>
+
+      <!-- corchete de la ventana -->
+      <path class="d-line-ok" d="M 726 118 L 736 118 L 736 310 L 726 310"/>
+      <text class="t-ok" x="744" y="206">windowSize</text>
+      <text class="t-sm" x="744" y="224">visible + margen</text>
+
+      <text class="t-ok" x="500" y="392">solo 7 vistas nativas en memoria</text>
+      <text class="t-sm" x="500" y="410">el resto se crea al acercarse, y se recicla al alejarse</text>
+    </svg>
+    <figcaption>
+      <b>El margen no es un detalle:</b> es lo que hace que el scroll se sienta fluido. Si solo se montara
+      lo estrictamente visible, cada píxel de scroll obligaría a crear vistas nuevas y verías las filas
+      aparecer en blanco. Ese margen es lo que controla la prop <code>windowSize</code>.
+    </figcaption>
+  </figure>
+
+  <!-- DEMO 2 -->
+  <div class="demo">
+    <div class="demo-head">
+      <span class="demo-tag">Demo en vivo</span>
+      <h3>200 tareas, dos estrategias — mirá el contador mientras scrolleás</h3>
+    </div>
+    <p class="demo-sub">
+      Esto no es una animación: el contador cuenta los nodos que existen de verdad en la página.
+      El mecanismo es el mismo que usa <code>FlatList</code> con las vistas nativas.
+    </p>
+
+    <div class="controls">
+      <div class="seg" role="group" aria-label="Estrategia de renderizado">
+        <button id="v-scroll" aria-pressed="true">ScrollView + map</button>
+        <button id="v-flat" aria-pressed="false">FlatList (windowing)</button>
+      </div>
+    </div>
+
+    <div class="metric-row">
+      <div class="metric" id="v-metric-mounted">
+        <div class="m-label">Filas montadas ahora</div>
+        <div class="m-value" id="v-mounted">—</div>
+      </div>
+      <div class="metric">
+        <div class="m-label">Total de tareas</div>
+        <div class="m-value">200</div>
+      </div>
+      <div class="metric">
+        <div class="m-label">Visibles en pantalla</div>
+        <div class="m-value" id="v-visible">—</div>
+      </div>
+    </div>
+
+    <div class="viewport" id="v-viewport"><div id="v-inner"></div></div>
+    <p class="note" id="v-note"></p>
+  </div>
+
+  <table>
+    <tr><th>Característica</th><th>ScrollView</th><th>FlatList</th></tr>
+    <tr><td><b>Carga de datos</b></td><td>Todo el array al montar</td><td>Solo lo que entra en pantalla</td></tr>
+    <tr><td><b>Memoria</b></td><td>1.000 ítems = 1.000 vistas</td><td>Constante, sin importar el total</td></tr>
+    <tr><td><b>Rendimiento</b></td><td>Se degrada con la longitud</td><td>Estable con miles de elementos</td></tr>
+    <tr><td><b>Uso ideal</b></td><td>Formularios cortos, pantallas de texto</td><td>Feeds, contactos, TaskFlow</td></tr>
+  </table>
+
+  <div class="box">
+    <div class="box-t">Cuándo <em>sí</em> conviene ScrollView</div>
+    <p>
+      Cuando el contenido es corto y de longitud conocida: un formulario largo, una pantalla de detalle,
+      los términos y condiciones. Ahí la virtualización no aporta nada y agrega complejidad. La regla
+      práctica: si la cantidad de elementos la definís vos, <code>ScrollView</code>; si la define el
+      usuario o el servidor, <code>FlatList</code>.
+    </p>
+  </div>
+</section>
+
+<hr>
+
+<!-- ═══════════ 6 ═══════════ -->
+<section id="anatomia">
+  <span class="sec-num">Sección 6</span>
+  <h2>Anatomía de una <code>FlatList</code> bien hecha</h2>
+  <p class="lede">Cada prop, y qué problema concreto resuelve.</p>
+
+  <pre><code>const keyExtractor = (item) =&gt; item.id   <span class="c">// ① fuera del componente</span>
+
+export default function TaskList({ tasks, onToggle, onSelect }) {
+
+  const renderItem = useCallback(                      <span class="c">// ② identidad estable</span>
+    ({ item }) =&gt; &lt;TaskItem task={item} onToggle={onToggle} onPress={onSelect} /&gt;,
+    [onToggle, onSelect]
+  )
+
+  return (
+    &lt;FlatList
+      data={tasks}                        <span class="c">// ③ la fuente de verdad</span>
+      keyExtractor={keyExtractor}         <span class="c">// ④ identidad de cada fila</span>
+      renderItem={renderItem}             <span class="c">// ⑤ la plantilla</span>
+      ListEmptyComponent={EmptyState}     <span class="c">// ⑥ nunca una pantalla en blanco</span>
+      contentContainerStyle={{ flexGrow: 1 }}
+
+      initialNumToRender={8}              <span class="c">// ⑦ tuning de virtualización</span>
+      windowSize={7}
+      maxToRenderPerBatch={8}
+    /&gt;
+  )
+}</code></pre>
+
+  <table>
+    <tr><th style="width:34%">Prop</th><th>Qué problema resuelve</th></tr>
+    <tr>
+      <td><b>① <code>keyExtractor</code> hoisted</b></td>
+      <td>No depende de props ni estado, así que no hay razón para recrear la función en cada render.
+          Definida a nivel de módulo, se crea una sola vez en toda la vida de la app.</td>
+    </tr>
+    <tr>
+      <td><b>② <code>renderItem</code> con <code>useCallback</code></b></td>
+      <td>Si la definís inline, cada render del screen crea una función nueva. <code>FlatList</code> ve
+          una prop distinta y asume que todo cambió: repinta las filas al pedo.</td>
+    </tr>
+    <tr>
+      <td><b>③ <code>data</code></b></td>
+      <td>El array. Cuando cambia de referencia, la lista se actualiza — de ahí la importancia de la
+          sección anterior.</td>
+    </tr>
+    <tr>
+      <td><b>④ <code>keyExtractor</code></b></td>
+      <td>El equivalente de <code>key</code> en <code>FlatList</code>. Todo lo de la sección 3 aplica igual.</td>
+    </tr>
+    <tr>
+      <td><b>⑤ <code>renderItem</code></b></td>
+      <td>Recibe <code>{ item, index, separators }</code>. Desestructurar <code>{ item }</code> y delegar
+          en un componente aparte mantiene la fila liviana.</td>
+    </tr>
+    <tr>
+      <td><b>⑥ <code>ListEmptyComponent</code></b></td>
+      <td>Se renderiza solo cuando <code>data</code> está vacío. Resuelve el estado vacío sin un ternario
+          en el JSX. Con <code>flexGrow: 1</code> se puede centrar verticalmente.</td>
+    </tr>
+    <tr>
+      <td><b>⑦ Tuning</b></td>
+      <td><code>initialNumToRender</code>: cuántas filas en el primer paint (las que llenan la pantalla).
+          <code>windowSize</code>: el margen, medido en pantallas. <code>maxToRenderPerBatch</code>: cuántas
+          filas por tanda al scrollear — tandas chicas mantienen la UI respondiendo.</td>
+    </tr>
+  </table>
+
+  <div class="box">
+    <div class="box-t">El componente de fila: <code>memo</code> + props estables</div>
+    <p>
+      La otra mitad del trabajo está en <code>TaskItem</code>. Envolverlo en <code>memo()</code> hace que
+      se saltee el render si sus props no cambiaron — y gracias al <code>map</code> inmutable de la sección
+      anterior, las filas que no tocamos reciben <em>exactamente el mismo objeto</em> y se saltean de verdad.
+    </p>
+    <p style="margin-bottom:0">
+      Ojo: <code>memo</code> solo funciona si las funciones que le pasás también son estables. Un
+      <code>onPress={() =&gt; ...}</code> inline crea una función nueva por render y anula el <code>memo</code>
+      por completo. Por eso los handlers viven en <code>useCallback</code>.
+    </p>
+  </div>
+
+  <div class="box warn">
+    <div class="box-t">Sobre <code>getItemLayout</code></div>
+    <p style="margin-bottom:0">
+      Es la optimización más potente —le permite a <code>FlatList</code> calcular posiciones sin medir cada
+      fila— pero exige que <b>todas las filas midan exactamente lo mismo</b>. Si el número que le pasás no
+      coincide con la altura real, aparecen huecos en blanco al scrollear. Con tarjetas de altura variable,
+      como las de TaskFlow, es mejor no usarla.
+    </p>
+  </div>
+</section>
+
+<hr>
+
+<!-- ═══════════ 7 ═══════════ -->
+<section id="detalle">
+  <span class="sec-num">Sección 7</span>
+  <h2>El patrón Master-Detail</h2>
+  <p class="lede">
+    La lista es media aplicación. La otra media es lo que pasa cuando el usuario toca una fila.
+  </p>
+
+  <p>
+    Spotify, WhatsApp, Gmail, Mercado Libre: todas son, en el fondo, una lista que lleva a un detalle.
+    La clave conceptual es que <b>lista y detalle son dos vistas del mismo dato</b>: en la lista mostramos
+    una versión resumida (título, hora), en el detalle el objeto completo (descripción, categoría, historial).
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 900 340" role="img" aria-label="Máquina de estados del patrón Master-Detail. Con selectedTask en null se renderiza la lista; al presionar una fila se llama a setSelectedTask con ese elemento y se pasa al estado de detalle; el botón de volver llama a setSelectedTask con null y regresa a la lista. Debajo se compara pasar el objeto completo contra pasar solo el identificador.">
+      <defs>
+        <marker id="ar4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"/>
+        </marker>
+      </defs>
+
+      <text class="t-head" x="24" y="24">Una sola variable de estado decide qué pantalla se ve</text>
+
+      <!-- estado lista -->
+      <rect class="d-box-soft" x="60" y="60" width="250" height="96" rx="10"/>
+      <text class="t-b" x="185" y="88" text-anchor="middle">Vista Lista</text>
+      <text class="t-mono" x="185" y="110" text-anchor="middle">selectedTask === null</text>
+      <text class="t-sm" x="185" y="132" text-anchor="middle">FlatList + formulario + tabs</text>
+
+      <!-- estado detalle -->
+      <rect class="d-box-soft" x="590" y="60" width="250" height="96" rx="10"/>
+      <text class="t-b" x="715" y="88" text-anchor="middle">Vista Detalle</text>
+      <text class="t-mono" x="715" y="110" text-anchor="middle">selectedTask = { … }</text>
+      <text class="t-sm" x="715" y="132" text-anchor="middle">objeto completo + botón volver</text>
+
+      <!-- transición ida -->
+      <path class="d-line" d="M 316 92 C 400 62, 500 62, 584 92" marker-end="url(#ar4)"/>
+      <text class="t-primary" x="450" y="62" text-anchor="middle">onPress(item)</text>
+      <text class="t-mono" x="450" y="46" text-anchor="middle">setSelectedTask(item)</text>
+
+      <!-- transición vuelta -->
+      <path class="d-line" d="M 584 128 C 500 158, 400 158, 316 128" marker-end="url(#ar4)"/>
+      <text class="t-primary" x="450" y="176" text-anchor="middle">onBack</text>
+      <text class="t-mono" x="450" y="192" text-anchor="middle">setSelectedTask(null)</text>
+
+      <line class="d-divider" x1="24" y1="216" x2="876" y2="216"/>
+
+      <!-- qué se pasa -->
+      <text class="t-head" x="24" y="244">¿Qué viaja hacia el detalle?</text>
+
+      <rect class="d-box" x="24" y="256" width="410" height="66" rx="8"/>
+      <text class="t-b" x="40" y="278">El objeto completo</text>
+      <text class="t-sm" x="40" y="298">Rápido y directo. Riesgo: si la tarea cambia en otro lado,</text>
+      <text class="t-sm" x="40" y="314">el detalle muestra una copia vieja. Sirve para esta etapa.</text>
+
+      <rect class="d-ok" x="466" y="256" width="410" height="66" rx="8"/>
+      <text class="t-b" x="482" y="278">Solo el id  ·  estándar profesional</text>
+      <text class="t-sm" x="482" y="298">El detalle busca el dato actualizado en la fuente de verdad.</text>
+      <text class="t-sm" x="482" y="314">Desacopla las pantallas y evita datos desincronizados.</text>
+    </svg>
+    <figcaption>
+      <b>En esta clase todavía no hay React Navigation</b>, así que la transición se hace con renderizado
+      condicional sobre <code>selectedTask</code>. El mecanismo conceptual es idéntico al de un
+      <code>Stack.Navigator</code> real: un estado que determina qué pantalla está arriba. En el Módulo 5
+      solo cambia quién administra ese estado.
+    </figcaption>
+  </figure>
+
+  <pre><code><span class="c">// La navegación simulada, completa</span>
+const [tasks, setTasks] = useState([])
+const [selectedTask, setSelectedTask] = useState(null)
+
+if (selectedTask) {
+  return &lt;TaskDetail task={selectedTask} onBack={() =&gt; setSelectedTask(null)} /&gt;
+}
+
+return (
+  &lt;SafeAreaView&gt;
+    &lt;TaskForm onAdd={addTask} /&gt;
+    &lt;FlatList
+      data={tasks}
+      keyExtractor={(item) =&gt; item.id}
+      renderItem={({ item }) =&gt; (
+        &lt;TouchableOpacity onPress={() =&gt; setSelectedTask(item)}&gt;
+          &lt;Text&gt;{item.title}&lt;/Text&gt;
+        &lt;/TouchableOpacity&gt;
+      )}
+      ListEmptyComponent={EmptyState}
+    /&gt;
+  &lt;/SafeAreaView&gt;
+)</code></pre>
+
+  <div class="box key">
+    <div class="box-t">El detalle que se pasa por alto</div>
+    <p>
+      Si el detalle recibe una <b>copia</b> del objeto y desde ahí marcás la tarea como completada, hay que
+      sincronizar los dos lugares: el array y la copia seleccionada. Es exactamente el problema que
+      desaparece cuando pasás solo el <code>id</code> y el detalle lee siempre de la fuente de verdad —
+      y es la razón por la que ese es el estándar profesional.
+    </p>
+  </div>
+</section>
+
+<hr>
+
+<!-- ═══════════ 8 ═══════════ -->
+<section id="rota">
+  <span class="sec-num">Sección 8</span>
+  <h2>La lista rota: los tres bugs clásicos</h2>
+  <p class="lede">
+    El ejercicio de debugging de la clase en vivo. Este código tiene tres problemas. Antes de seguir
+    leyendo: ¿cuáles?
+  </p>
+
+  <pre><code>export default function TaskList() {
+  const [tasks, setTasks] = useState(INITIAL_TASKS)
+
+  const toggle = (index) =&gt; {
+    <span class="bad-line">tasks[index].completed = !tasks[index].completed</span>
+    <span class="bad-line">setTasks(tasks)</span>
+  }
+
+  return (
+    &lt;FlatList
+      data={tasks}
+      <span class="bad-line">renderItem={({ item, index }) =&gt; (</span>
+        &lt;TouchableOpacity onPress={() =&gt; toggle(index)}&gt;
+          &lt;Text&gt;{item.title}&lt;/Text&gt;
+        &lt;/TouchableOpacity&gt;
+      )}
+    /&gt;
+    <span class="c">// ← falta algo acá</span>
+  )
+}</code></pre>
+
+  <div class="box warn">
+    <div class="box-t">Bug 1 · Mutación directa del estado</div>
+    <p style="margin-bottom:0">
+      <code>tasks[index].completed = ...</code> modifica el objeto en su lugar, y <code>setTasks(tasks)</code>
+      pasa <b>la misma referencia</b>. React compara, ve que es el mismo array y no re-renderiza.
+      <b>Síntoma:</b> tocás la tarea y no pasa absolutamente nada. El dato cambió, la pantalla no.
+      <b>Fix:</b> <code>setTasks(prev =&gt; prev.map(t =&gt; t.id === id ? {...t, completed: !t.completed} : t))</code>
+    </p>
+  </div>
+
+  <div class="box warn">
+    <div class="box-t">Bug 2 · Falta <code>keyExtractor</code></div>
+    <p style="margin-bottom:0">
+      Sin él, <code>FlatList</code> cae al índice como identidad. <b>Síntoma:</b> warning en consola, y al
+      borrar o reordenar, el estado interno de las filas se corre —el bug de la sección 3.
+      <b>Fix:</b> <code>keyExtractor={(item) =&gt; item.id}</code>
+    </p>
+  </div>
+
+  <div class="box warn">
+    <div class="box-t">Bug 3 · <code>renderItem</code> anónimo e inline</div>
+    <p style="margin-bottom:0">
+      Se recrea en cada render, así que <code>FlatList</code> recibe siempre una prop nueva y no puede
+      optimizar nada. <b>Síntoma:</b> scroll con tirones cuando la lista crece; no se nota con 5 ítems,
+      sí con 500. <b>Fix:</b> extraerlo a <code>useCallback</code> y mover la fila a un componente con
+      <code>memo</code>.
+    </p>
+  </div>
+
+  <p>
+    Bonus: no hay <code>ListEmptyComponent</code>. Si el usuario borra todas las tareas, se queda mirando
+    una pantalla en blanco sin entender si la app se rompió o simplemente no hay nada.
+  </p>
+
+  <div class="box key">
+    <div class="box-t">La pista, si nadie lo encuentra: <em>referential identity</em></div>
+    <p style="margin-bottom:0">
+      Los tres bugs son la misma idea vista desde tres ángulos. React razona por <b>identidad de referencia</b>:
+      qué objeto es el mismo que antes y qué objeto es nuevo. Mutar rompe esa señal, el índice la falsifica,
+      y una función inline la destruye en cada render.
+    </p>
+  </div>
+</section>
+
+<hr>
+
+<!-- ═══════════ 9 ═══════════ -->
+<section id="mapa">
+  <span class="sec-num">Sección 9</span>
+  <h2>Dónde vive cada cosa en TaskFlow</h2>
+  <p class="lede">Del concepto al archivo: cómo se traduce todo esto en el proyecto de la cursada.</p>
+
+  <figure>
+    <svg viewBox="0 0 900 330" role="img" aria-label="Arquitectura de TaskFlow. App.tsx concentra el estado de tareas, la tarea seleccionada y el tab activo, y baja datos y handlers a las pantallas. FlatListScreen y ScrollViewScreen comparten el mismo array de tareas y el mismo componente de fila TaskItem. Al seleccionar una tarea se renderiza TaskDetailScreen en lugar de las pantallas de lista.">
+      <defs>
+        <marker id="ar5" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"/>
+        </marker>
+      </defs>
+
+      <!-- App -->
+      <rect class="d-box-soft" x="300" y="24" width="300" height="76" rx="10"/>
+      <text class="t-b" x="450" y="48" text-anchor="middle">App.tsx — el dueño del estado</text>
+      <text class="t-mono" x="450" y="68" text-anchor="middle">tasks · selectedTask · activeTab</text>
+      <text class="t-sm" x="450" y="88" text-anchor="middle">addTask · toggleTask · deleteTask</text>
+
+      <!-- ramas -->
+      <path class="d-line" d="M 380 104 L 380 128 L 150 128 L 150 156" marker-end="url(#ar5)"/>
+      <path class="d-line" d="M 450 104 L 450 156" marker-end="url(#ar5)"/>
+      <path class="d-line" d="M 520 104 L 520 128 L 750 128 L 750 156" marker-end="url(#ar5)"/>
+      <text class="t-sm" x="252" y="122" text-anchor="middle">tab ⚡</text>
+      <text class="t-sm" x="640" y="122" text-anchor="middle">selectedTask ≠ null</text>
+
+      <!-- screens -->
+      <rect class="d-box" x="40" y="156" width="220" height="70" rx="9"/>
+      <text class="t-b" x="150" y="180" text-anchor="middle">FlatListScreen</text>
+      <text class="t-sm" x="150" y="200" text-anchor="middle">keyExtractor · renderItem</text>
+      <text class="t-sm" x="150" y="216" text-anchor="middle">ListEmptyComponent · tuning</text>
+
+      <rect class="d-box" x="340" y="156" width="220" height="70" rx="9"/>
+      <text class="t-b" x="450" y="180" text-anchor="middle">ScrollViewScreen</text>
+      <text class="t-sm" x="450" y="200" text-anchor="middle">.map() sin virtualización</text>
+      <text class="t-sm" x="450" y="216" text-anchor="middle">la comparación didáctica</text>
+
+      <rect class="d-ok" x="640" y="156" width="220" height="70" rx="9"/>
+      <text class="t-b" x="750" y="180" text-anchor="middle">TaskDetailScreen</text>
+      <text class="t-sm" x="750" y="200" text-anchor="middle">objeto completo · onBack</text>
+      <text class="t-sm" x="750" y="216" text-anchor="middle">completar · eliminar</text>
+
+      <!-- TaskForm: vive dentro de FlatListScreen -->
+      <path class="d-line" d="M 110 230 L 110 268" marker-end="url(#ar5)"/>
+      <rect class="d-box" x="40" y="272" width="240" height="46" rx="9"/>
+      <text class="t-b" x="160" y="292" text-anchor="middle">TaskForm  ·  bottom sheet</text>
+      <text class="t-sm" x="160" y="309" text-anchor="middle">formulario controlado + categoría</text>
+
+      <!-- TaskItem: compartido por las dos listas -->
+      <path class="d-line" d="M 210 230 L 210 250 L 400 250 L 400 268" marker-end="url(#ar5)"/>
+      <path class="d-line" d="M 450 230 L 450 268" marker-end="url(#ar5)"/>
+      <rect class="d-box-soft" x="330" y="272" width="240" height="46" rx="9"/>
+      <text class="t-b" x="450" y="292" text-anchor="middle">TaskItem  ·  memo()</text>
+      <text class="t-sm" x="450" y="309" text-anchor="middle">la misma fila para las dos listas</text>
+    </svg>
+    <figcaption>
+      <b>El estado vive arriba (<em>lifting state up</em>)</b> porque dos pantallas distintas necesitan las
+      mismas tareas: una tarea agregada desde el tab de FlatList aparece también en el de ScrollView.
+      Si cada pantalla tuviera su propio <code>useState</code>, serían dos listas sin relación.
+    </figcaption>
+  </figure>
+
+  <table>
+    <tr><th style="width:36%">Concepto de la clase</th><th>Dónde verlo en el código</th></tr>
+    <tr><td>Proyección de datos con <code>map</code></td><td><code>ScrollViewScreen.tsx</code> — el patrón clásico de la web</td></tr>
+    <tr><td>Virtualización</td><td><code>FlatListScreen.tsx</code> — más el contador de montados en vivo</td></tr>
+    <tr><td>Keys estables</td><td><code>types.ts</code> → <code>createId()</code>, usado al crear la tarea</td></tr>
+    <tr><td>Updates inmutables</td><td><code>App.tsx</code> → <code>toggleTask</code>, <code>deleteTask</code>, <code>addTask</code></td></tr>
+    <tr><td>Fila memoizada</td><td><code>TaskItem.tsx</code> — <code>memo()</code> + props estables</td></tr>
+    <tr><td>Estado vacío</td><td><code>EmptyState.tsx</code>, montado vía <code>ListEmptyComponent</code></td></tr>
+    <tr><td>Master-Detail</td><td><code>App.tsx</code> → <code>selectedTask</code> + <code>TaskDetailScreen.tsx</code></td></tr>
+    <tr><td>Formulario con categoría</td><td><code>TaskForm.tsx</code> — <code>Modal</code> con <code>animationType="slide"</code></td></tr>
+  </table>
+
+  <h3>Checklist antes de entregar el checkpoint</h3>
+  <ul class="check-list">
+    <li>Con el array vacío se ve el <b>EmptyState</b>, nunca una pantalla en blanco.</li>
+    <li>Una tarea creada desde el formulario aparece en la lista y su detalle se abre.</li>
+    <li><code>keyExtractor</code> usa un ID único, no el índice.</li>
+    <li>El toggle genera un array nuevo con <code>.map()</code>, sin mutar el original.</li>
+    <li>El botón de volver deja la app exactamente como estaba.</li>
+    <li>La consola de Metro no muestra <b>ningún</b> warning de React durante la interacción.</li>
+    <li>El detalle usa <code>StyleSheet</code> y respeta la línea visual de los módulos previos.</li>
+    <li>El repositorio está limpio, en la rama solicitada.</li>
+  </ul>
+</section>
+
+<footer>
+  <p style="margin:0">
+    <b>Clase 4 · Módulo 4 — Listas, renderizado y detalle de elementos</b><br>
+    Material de apoyo para la masterclass. Los diagramas y las demos están pensados para proyectar:
+    las dos demos interactivas funcionan sin conexión y sin dependencias.
+  </p>
+</footer>
+
+</div>
+
+<script>
+/* ══════════════ DEMO 1 · Reconciliación por key ══════════════
+   Simulamos lo que hace React: emparejar los componentes viejos con los
+   nuevos SEGÚN SU KEY. El "estado interno" (checked) viaja con el componente,
+   no con el dato — igual que un input a medio escribir. */
+(function () {
+  const SEED = [
+    { id: 'a1', label: 'Comprar café' },
+    { id: 'b2', label: 'Revisar el PR' },
+    { id: 'c3', label: 'Llamar al médico' },
+    { id: 'd4', label: 'Entregar el Módulo 4' }
+  ]
+
+  let data = SEED.slice()
+  // instancias montadas: { key, checked } — el estado vive acá, atado a la key
+  let mounted = []
+  let mode = 'index'
+
+  const list = document.getElementById('k-list')
+  const note = document.getElementById('k-note')
+  const btnIndex = document.getElementById('k-index')
+  const btnId = document.getElementById('k-id')
+  const btnReset = document.getElementById('k-reset')
+
+  const keyFor = (task, i) => (mode === 'index' ? String(i) : task.id)
+
+  function remount() {
+    // Reconciliación: para cada posición nueva, buscamos si ya existía un
+    // componente montado con esa misma key. Si sí, lo reusamos CON su estado.
+    const next = data.map((task, i) => {
+      const key = keyFor(task, i)
+      const existing = mounted.find((m) => m.key === key)
+      return existing ? { key, checked: existing.checked } : { key, checked: false }
+    })
+    mounted = next
+  }
+
+  function render() {
+    list.innerHTML = ''
+    data.forEach((task, i) => {
+      const key = keyFor(task, i)
+      const inst = mounted[i]
+      const row = document.createElement('div')
+      row.className = 'task-row' + (inst.checked ? ' checked' : '')
+      row.innerHTML =
+        '<div class="mark" role="button" tabindex="0" aria-label="Marcar ' + task.label + '">' +
+        (inst.checked ? '✓' : '') + '</div>' +
+        '<div class="label">' + task.label + '</div>' +
+        '<div class="keyinfo">key ' + key + '</div>'
+      row.querySelector('.mark').addEventListener('click', () => {
+        mounted[i].checked = !mounted[i].checked
+        render()
+      })
+      list.appendChild(row)
+    })
+
+    const del = document.createElement('button')
+    del.className = 'ghost'
+    del.style.marginTop = '8px'
+    del.textContent = 'Eliminar la primera tarea'
+    del.disabled = data.length <= 1
+    del.addEventListener('click', () => {
+      data = data.slice(1)          // update inmutable, como corresponde
+      remount()                     // React reconcilia por key
+      render()
+    })
+    list.appendChild(del)
+
+    const checkedLabels = data.filter((_, i) => mounted[i] && mounted[i].checked).map((t) => t.label)
+    if (mode === 'index') {
+      note.innerHTML =
+        '<b>key = index.</b> El estado está atado a la <em>posición</em>. ' +
+        'Marcá la segunda tarea, borrá la primera, y vas a ver el check saltar a otra fila: ' +
+        'React reusó el componente de la posición 1 para mostrar un dato distinto. ' +
+        (checkedLabels.length ? 'Ahora está marcada: <b>' + checkedLabels.join(', ') + '</b>.' : '')
+    } else {
+      note.innerHTML =
+        '<b>key = task.id.</b> El estado está atado a la <em>identidad</em>. ' +
+        'Marcá cualquier tarea y borrá las de arriba: el check se queda pegado a la tarea correcta, ' +
+        'porque React sabe qué componente destruir y cuáles mover intactos. ' +
+        (checkedLabels.length ? 'Ahora está marcada: <b>' + checkedLabels.join(', ') + '</b>.' : '')
+    }
+  }
+
+  function setMode(next) {
+    mode = next
+    btnIndex.setAttribute('aria-pressed', String(next === 'index'))
+    btnId.setAttribute('aria-pressed', String(next === 'id'))
+    // Al cambiar de estrategia, las keys cambian → React remonta todo.
+    mounted = data.map((task, i) => ({ key: keyFor(task, i), checked: false }))
+    render()
+  }
+
+  btnIndex.addEventListener('click', () => setMode('index'))
+  btnId.addEventListener('click', () => setMode('id'))
+  btnReset.addEventListener('click', () => {
+    data = SEED.slice()
+    setMode(mode)
+  })
+
+  setMode('index')
+})();
+
+
+/* ══════════════ DEMO 2 · Virtualización real ══════════════
+   No es una simulación: en modo "FlatList" solo existen en el DOM las filas
+   de la ventana, sostenidas por dos spacers. El contador cuenta nodos reales. */
+(function () {
+  const TOTAL = 200
+  const ROW_H = 44
+  const OVERSCAN = 3
+
+  const viewport = document.getElementById('v-viewport')
+  const inner = document.getElementById('v-inner')
+  const outMounted = document.getElementById('v-mounted')
+  const outVisible = document.getElementById('v-visible')
+  const metric = document.getElementById('v-metric-mounted')
+  const note = document.getElementById('v-note')
+  const btnScroll = document.getElementById('v-scroll')
+  const btnFlat = document.getElementById('v-flat')
+
+  let mode = 'scroll'
+
+  function rowHTML(i) {
+    return '<div class="vrow"><span class="vnum">' + String(i + 1).padStart(3, '0') +
+      '</span><span>Tarea de ejemplo n.º ' + (i + 1) + '</span></div>'
+  }
+
+  function renderAll() {
+    let html = ''
+    for (let i = 0; i < TOTAL; i++) html += rowHTML(i)
+    inner.innerHTML = html
+  }
+
+  function renderWindow() {
+    const scrollTop = viewport.scrollTop
+    const visibleCount = Math.ceil(viewport.clientHeight / ROW_H)
+    const first = Math.max(0, Math.floor(scrollTop / ROW_H) - OVERSCAN)
+    const last = Math.min(TOTAL - 1, first + visibleCount + OVERSCAN * 2)
+
+    let html = '<div style="height:' + first * ROW_H + 'px"></div>'
+    for (let i = first; i <= last; i++) html += rowHTML(i)
+    html += '<div style="height:' + (TOTAL - 1 - last) * ROW_H + 'px"></div>'
+    inner.innerHTML = html
+  }
+
+  function updateMetrics() {
+    const count = inner.querySelectorAll('.vrow').length
+    outMounted.textContent = count
+    outVisible.textContent = Math.ceil(viewport.clientHeight / ROW_H)
+    metric.className = 'metric ' + (mode === 'scroll' ? 'is-bad' : 'is-ok')
+  }
+
+  function paint() {
+    if (mode === 'scroll') renderAll()
+    else renderWindow()
+    updateMetrics()
+  }
+
+  viewport.addEventListener('scroll', () => {
+    if (mode === 'flat') {
+      renderWindow()
+      updateMetrics()
+    }
+  })
+
+  function setMode(next) {
+    mode = next
+    btnScroll.setAttribute('aria-pressed', String(next === 'scroll'))
+    btnFlat.setAttribute('aria-pressed', String(next === 'flat'))
+    viewport.scrollTop = 0
+    paint()
+    note.innerHTML =
+      next === 'scroll'
+        ? '<b>ScrollView.</b> Las 200 filas existen desde el primer instante, aunque solo se vean 6. ' +
+          'En React Native cada una sería una vista nativa con su costo de memoria. Scrolleá: el número no se mueve.'
+        : '<b>FlatList.</b> Solo existen las filas de la ventana. Scrolleá y mirá el contador: ' +
+          'se mantiene constante mientras las filas se crean y se destruyen a tu paso. ' +
+          'Con 200 o con 10.000 tareas, el número sería el mismo.'
+  }
+
+  btnScroll.addEventListener('click', () => setMode('scroll'))
+  btnFlat.addEventListener('click', () => setMode('flat'))
+
+  setMode('scroll')
+})();
+</script>
+
+</body>
+</html>
