@@ -1,0 +1,1330 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>React Navigation en React Native con Expo · Stack, Tabs y Drawer</title>
+<style>
+  :root {
+    --canvas:#F6F1E7; --surface:#FFFFFF; --ink:#211710; --muted:#7A6E60;
+    --border:#E3D9C9; --primary:#FF5A2D; --primary-soft:#FFE9E1; --dark:#2A1008;
+    --ok:#1F8A5B; --ok-soft:#E1F3EA; --bad:#C93A3A; --bad-soft:#FBE7E7;
+    --info:#4A6CF0; --info-soft:#E8ECFE; --code-bg:#FBF7F1;
+    --shadow:0 2px 10px rgba(42,16,8,.07);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --canvas:#171310; --surface:#211B16; --ink:#F2EBE2; --muted:#A2988B;
+      --border:#3A2F26; --primary:#FF7A50; --primary-soft:#3B1E13; --dark:#F2EBE2;
+      --ok:#4FC08D; --ok-soft:#15301F; --bad:#F0736F; --bad-soft:#331819;
+      --info:#8AA0FF; --info-soft:#1B2140; --code-bg:#1A1511;
+      --shadow:0 2px 10px rgba(0,0,0,.35);
+    }
+  }
+  * { box-sizing:border-box; }
+  html { scroll-behavior:smooth; }
+  body {
+    margin:0; background:var(--canvas); color:var(--ink);
+    font-family:"Plus Jakarta Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
+    font-size:16px; line-height:1.65;
+  }
+  .wrap { max-width:960px; margin:0 auto; padding:0 24px 96px; }
+  header.hero {
+    background:var(--dark); color:var(--canvas); padding:64px 24px 56px; margin-bottom:48px;
+  }
+  @media (prefers-color-scheme: dark) { header.hero { background:#0D0A08; color:#F2EBE2; } }
+  .hero-inner { max-width:960px; margin:0 auto; }
+  .kicker { color:var(--primary); font-weight:700; letter-spacing:3px; text-transform:uppercase; font-size:13px; }
+  .hero h1 { font-size:clamp(32px,6vw,52px); line-height:1.08; margin:16px 0 0; font-weight:800; letter-spacing:-1px; }
+  .hero h1 em { font-style:normal; color:var(--primary); }
+  .hero p { max-width:720px; margin:20px 0 0; opacity:.85; font-size:17px; }
+  .hero nav { margin-top:32px; display:flex; flex-wrap:wrap; gap:8px; }
+  .hero nav a {
+    color:inherit; text-decoration:none; border:1px solid rgba(255,255,255,.22);
+    border-radius:999px; padding:6px 16px; font-size:13.5px; font-weight:600; transition:.15s;
+  }
+  .hero nav a:hover { background:var(--primary); border-color:var(--primary); color:#fff; }
+
+  section { margin-bottom:72px; scroll-margin-top:24px; }
+  .sec-num {
+    display:inline-block; background:var(--primary); color:#fff; font-weight:800;
+    font-size:12px; letter-spacing:1px; padding:4px 12px; border-radius:999px; text-transform:uppercase;
+  }
+  h2 { font-size:clamp(24px,4vw,32px); font-weight:800; margin:14px 0 6px; letter-spacing:-.5px; line-height:1.2; }
+  h3 { font-size:19px; font-weight:800; margin:36px 0 10px; }
+  h4 { font-size:15px; font-weight:800; margin:24px 0 8px; color:var(--primary); }
+  .lede { color:var(--muted); font-size:17px; margin:0 0 24px; }
+  p { margin:0 0 16px; }
+  ul,ol { margin:0 0 16px; padding-left:22px; }
+  li { margin-bottom:8px; }
+  hr { border:none; border-top:1px solid var(--border); margin:56px 0; }
+
+  code, pre, .mono { font-variant-ligatures:none; -webkit-font-variant-ligatures:none; }
+  code {
+    font-family:"SF Mono","JetBrains Mono",Menlo,Consolas,monospace; font-size:.88em;
+    background:var(--code-bg); border:1px solid var(--border); border-radius:4px;
+    padding:1px 5px; color:var(--primary);
+  }
+  pre {
+    font-family:"SF Mono","JetBrains Mono",Menlo,Consolas,monospace;
+    background:var(--code-bg); border:1px solid var(--border); border-left:3px solid var(--primary);
+    border-radius:8px; padding:16px 18px; font-size:13.5px; line-height:1.6;
+    overflow-x:auto; margin:0 0 20px;
+  }
+  pre code { background:none; border:none; padding:0; color:inherit; font-size:inherit; }
+  pre .c { color:var(--muted); font-style:italic; }
+  pre .bad-line { color:var(--bad); font-weight:700; }
+  pre .ok-line { color:var(--ok); font-weight:700; }
+
+  figure { margin:28px 0 32px; }
+  figure svg { width:100%; height:auto; display:block; background:var(--surface);
+    border:1px solid var(--border); border-radius:12px; padding:12px; box-shadow:var(--shadow); }
+  figcaption { margin-top:12px; font-size:14px; color:var(--muted); line-height:1.55; }
+  figcaption b { color:var(--ink); }
+
+  .d-box { fill:var(--surface); stroke:currentColor; stroke-width:1.5; }
+  .d-box-soft { fill:var(--primary-soft); stroke:var(--primary); stroke-width:1.5; }
+  .d-ok { fill:var(--ok-soft); stroke:var(--ok); stroke-width:1.5; }
+  .d-bad { fill:var(--bad-soft); stroke:var(--bad); stroke-width:1.5; }
+  .d-info { fill:var(--info-soft); stroke:var(--info); stroke-width:1.5; }
+  .d-ghost { fill:none; stroke:currentColor; stroke-width:1.2; stroke-dasharray:4 4; opacity:.45; }
+  .d-line { stroke:currentColor; stroke-width:1.6; fill:none; }
+  .d-line-ok { stroke:var(--ok); stroke-width:1.8; fill:none; }
+  .d-line-bad { stroke:var(--bad); stroke-width:1.8; fill:none; }
+  .d-divider { stroke:currentColor; stroke-width:1.2; stroke-dasharray:6 5; opacity:.4; }
+  .t { fill:currentColor; font-size:13px; font-family:inherit; }
+  .t-sm { fill:currentColor; font-size:11.5px; font-family:inherit; opacity:.75; }
+  .t-b { fill:currentColor; font-size:13.5px; font-weight:700; font-family:inherit; }
+  .t-head { fill:currentColor; font-size:12px; font-weight:800; font-family:inherit; letter-spacing:1px; text-transform:uppercase; opacity:.6; }
+  .t-mono { fill:currentColor; font-size:11.5px; font-family:"SF Mono",Menlo,monospace; }
+  .t-ok { fill:var(--ok); font-size:12.5px; font-weight:700; font-family:inherit; }
+  .t-bad { fill:var(--bad); font-size:12.5px; font-weight:700; font-family:inherit; }
+  .t-primary { fill:var(--primary); font-size:12.5px; font-weight:700; font-family:inherit; }
+
+  .box { border:1px solid var(--border); border-radius:10px; padding:18px 20px; margin:0 0 20px;
+    background:var(--surface); box-shadow:var(--shadow); }
+  .box .box-t { font-weight:800; font-size:15px; margin-bottom:8px; }
+  .box p:last-child, .box ul:last-child { margin-bottom:0; }
+  .box.key { border-left:4px solid var(--primary); }
+  .box.key .box-t { color:var(--primary); }
+  .box.warn { border-left:4px solid var(--bad); }
+  .box.warn .box-t { color:var(--bad); }
+  .box.good { border-left:4px solid var(--ok); }
+  .box.good .box-t { color:var(--ok); }
+  .box.info { border-left:4px solid var(--info); }
+  .box.info .box-t { color:var(--info); }
+
+  .cols { display:grid; grid-template-columns:1fr 1fr; gap:18px; margin-bottom:20px; }
+  @media (max-width:720px) { .cols { grid-template-columns:1fr; } }
+
+  table { width:100%; border-collapse:collapse; font-size:14.5px; margin:0 0 20px;
+    background:var(--surface); border-radius:10px; overflow:hidden; box-shadow:var(--shadow); }
+  th { background:var(--dark); color:var(--canvas); text-align:left; padding:11px 14px;
+    font-size:12px; text-transform:uppercase; letter-spacing:.6px; }
+  td { padding:11px 14px; border-bottom:1px solid var(--border); vertical-align:top; }
+  tr:last-child td { border-bottom:none; }
+
+  .demo { border:2px solid var(--primary); border-radius:12px; background:var(--surface);
+    padding:20px; margin:28px 0; box-shadow:var(--shadow); }
+  .demo-head { display:flex; align-items:center; gap:10px; margin-bottom:6px; }
+  .demo-tag { background:var(--primary); color:#fff; font-size:11px; font-weight:800;
+    letter-spacing:1px; text-transform:uppercase; padding:3px 10px; border-radius:999px; }
+  .demo-head h3 { margin:0; font-size:17px; }
+  .demo-sub { color:var(--muted); font-size:14px; margin:0 0 18px; }
+  .controls { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:16px; }
+  button {
+    font:inherit; font-size:14px; font-weight:700; cursor:pointer;
+    background:var(--dark); color:var(--canvas); border:none; border-radius:8px; padding:9px 16px;
+    transition:.15s;
+  }
+  button:hover { opacity:.85; }
+  button.ghost { background:transparent; color:var(--ink); border:1.5px solid var(--border); }
+  button.ghost:hover { border-color:var(--primary); color:var(--primary); }
+  .seg { display:inline-flex; background:var(--code-bg); border:1.5px solid var(--border);
+    border-radius:999px; padding:3px; gap:3px; }
+  .seg button { background:transparent; color:var(--muted); border-radius:999px; padding:6px 16px; font-size:13.5px; }
+  .seg button[aria-pressed="true"] { background:var(--primary); color:#fff; }
+
+  .phone-demo { max-width:330px; margin:0 auto; border:8px solid var(--dark); border-radius:28px;
+    overflow:hidden; background:var(--surface); box-shadow:var(--shadow); }
+  .phone-top { background:var(--dark); color:#fff; padding:11px 14px; display:flex; justify-content:space-between; align-items:center; }
+  .phone-top strong { font-size:14px; }
+  .phone-body { min-height:310px; padding:16px; background:var(--code-bg); }
+  .phone-bottom { display:grid; grid-template-columns:repeat(3,1fr); border-top:1px solid var(--border); background:var(--surface); }
+  .tab-btn { border-radius:0; background:transparent; color:var(--muted); padding:11px 5px; font-size:11px; }
+  .tab-btn.active { color:var(--primary); background:var(--primary-soft); }
+  .screen-card { border:1px solid var(--border); background:var(--surface); border-radius:10px; padding:14px; margin-bottom:10px; }
+  .screen-card strong { display:block; margin-bottom:4px; }
+  .drawer { position:relative; min-height:310px; overflow:hidden; background:var(--code-bg); }
+  .drawer-panel { width:72%; min-height:310px; background:var(--surface); padding:16px; box-shadow:6px 0 18px rgba(0,0,0,.12); }
+  .drawer-item { width:100%; text-align:left; background:transparent; color:var(--ink); border-radius:7px; margin:3px 0; }
+  .drawer-item.active { background:var(--primary-soft); color:var(--primary); }
+  .fake-detail { padding:18px; }
+
+  .callout-flow { display:grid; grid-template-columns:1fr 55px 1fr 55px 1fr; align-items:center; gap:8px; margin:22px 0; }
+  @media (max-width:720px) { .callout-flow { grid-template-columns:1fr; } .flow-arrow { display:none; } }
+  .flow-box { border:1.5px solid var(--border); border-radius:10px; background:var(--surface); padding:16px; text-align:center; }
+  .flow-box.primary { border-color:var(--primary); background:var(--primary-soft); }
+  .flow-box.ok { border-color:var(--ok); background:var(--ok-soft); }
+  .flow-arrow { text-align:center; color:var(--primary); font-size:24px; font-weight:800; }
+
+  .check-list, .x-list { list-style:none; padding-left:0; }
+  .check-list li { padding-left:28px; position:relative; margin-bottom:10px; }
+  .check-list li::before { content:"✓"; position:absolute; left:0; top:0; color:var(--ok); font-weight:800; font-size:16px; }
+  .x-list li { padding-left:28px; position:relative; margin-bottom:10px; }
+  .x-list li::before { content:"✕"; position:absolute; left:0; top:0; color:var(--bad); font-weight:800; font-size:15px; }
+
+  .tag { display:inline-block; padding:3px 9px; border-radius:999px; background:var(--info-soft);
+    color:var(--info); font-size:12px; font-weight:800; margin:2px 4px 2px 0; }
+  footer { border-top:1px solid var(--border); padding-top:24px; color:var(--muted); font-size:14px; }
+</style>
+</head>
+
+<body>
+
+<header class="hero">
+  <div class="hero-inner">
+    <div class="kicker">Clase · Desarrollo de Aplicaciones</div>
+    <h1>React Navigation<br>con <em>Expo</em></h1>
+    <p>
+      Cómo pensar la navegación de una aplicación React Native antes de escribir código:
+      <b>Stack</b>, <b>Bottom Tabs</b>, <b>Drawer</b>, navegación anidada, parámetros,
+      back, headers, Safe Area, autenticación, deep linking y los errores clásicos.
+    </p>
+    <nav>
+      <a href="#modelo">1 · Modelo mental</a>
+      <a href="#instalacion">2 · Instalación</a>
+      <a href="#stack">3 · Stack</a>
+      <a href="#params">4 · Parámetros</a>
+      <a href="#tabs">5 · Bottom Tabs</a>
+      <a href="#drawer">6 · Drawer</a>
+      <a href="#anidada">7 · Anidación</a>
+      <a href="#back">8 · Back e historial</a>
+      <a href="#layout">9 · Safe Area</a>
+      <a href="#auth">10 · Auth</a>
+      <a href="#deep">11 · Deep links</a>
+      <a href="#errores">12 · Errores</a>
+      <a href="#proyecto">13 · Arquitectura</a>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap">
+
+<section id="modelo">
+  <span class="sec-num">Sección 1</span>
+  <h2>El modelo mental: navegar no es renderizar condicionalmente</h2>
+  <p class="lede">
+    En la clase anterior podíamos simular una navegación con <code>selectedTask</code>.
+    React Navigation toma esa idea y la convierte en un sistema de navegación completo.
+  </p>
+
+  <p>
+    Una pantalla normal responde a un estado: "si <code>selectedTask</code> existe, muestro el detalle".
+    Eso sirve para entender el concepto, pero una aplicación real necesita mucho más:
+    saber qué pantallas fueron visitadas, permitir volver, animar transiciones, mostrar headers,
+    manejar gestos, mantener historiales independientes y representar estructuras como tabs dentro
+    de un stack.
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 900 330" role="img" aria-label="Modelo mental de React Navigation: una aplicación contiene un navegador raíz, que administra rutas y estado de navegación. Los navegadores pueden contener otros navegadores. Las pantallas reciben route y navigation.">
+      <defs>
+        <marker id="navar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"/>
+        </marker>
+      </defs>
+
+      <text class="t-head" x="24" y="26">La arquitectura conceptual</text>
+
+      <rect class="d-box-soft" x="30" y="62" width="190" height="92" rx="10"/>
+      <text class="t-b" x="125" y="88" text-anchor="middle">App</text>
+      <text class="t-sm" x="125" y="110" text-anchor="middle">NavigationContainer</text>
+      <text class="t-mono" x="125" y="132" text-anchor="middle">estado de navegación</text>
+
+      <line class="d-line" x1="224" y1="108" x2="276" y2="108" marker-end="url(#navar)"/>
+
+      <rect class="d-box" x="282" y="62" width="210" height="92" rx="10"/>
+      <text class="t-b" x="387" y="88" text-anchor="middle">Navigator</text>
+      <text class="t-sm" x="387" y="110" text-anchor="middle">Stack / Tabs / Drawer</text>
+      <text class="t-mono" x="387" y="132" text-anchor="middle">rutas + historial + UI</text>
+
+      <line class="d-line" x1="496" y1="108" x2="548" y2="108" marker-end="url(#navar)"/>
+
+      <rect class="d-box" x="554" y="62" width="150" height="92" rx="10"/>
+      <text class="t-b" x="629" y="88" text-anchor="middle">Route</text>
+      <text class="t-sm" x="629" y="110" text-anchor="middle">Home</text>
+      <text class="t-mono" x="629" y="132" text-anchor="middle">params opcionales</text>
+
+      <line class="d-line" x1="708" y1="108" x2="760" y2="108" marker-end="url(#navar)"/>
+
+      <rect class="d-box-soft" x="766" y="62" width="104" height="92" rx="10"/>
+      <text class="t-b" x="818" y="88" text-anchor="middle">Screen</text>
+      <text class="t-sm" x="818" y="110" text-anchor="middle">UI</text>
+      <text class="t-sm" x="818" y="132" text-anchor="middle">useNavigation()</text>
+
+      <line class="d-divider" x1="30" y1="190" x2="870" y2="190"/>
+
+      <text class="t-head" x="30" y="220">La idea importante</text>
+      <text class="t" x="30" y="248">Un Navigator no es una pantalla: es el objeto que sabe qué rutas existen, cuál está activa</text>
+      <text class="t" x="30" y="270">y cómo pasar de una a otra. Y un Navigator puede ser una ruta dentro de otro Navigator.</text>
+      <text class="t-primary" x="30" y="300">Stack contiene Tabs · Tabs contiene Stacks · Drawer puede envolver toda la aplicación</text>
+    </svg>
+    <figcaption>
+      <b>React Navigation administra un estado de navegación.</b> Cada navegador tiene sus propias rutas
+      y su propio historial. Esta idea explica casi todos los comportamientos que veremos después.
+    </figcaption>
+  </figure>
+
+  <div class="box key">
+    <div class="box-t">Tres palabras que conviene separar</div>
+    <ul>
+      <li><b>Screen:</b> el componente React que representa una pantalla.</li>
+      <li><b>Route:</b> la entrada de navegación que identifica esa pantalla dentro de un navigator.</li>
+      <li><b>Navigator:</b> el sistema que administra rutas, historial, transiciones y UI de navegación.</li>
+    </ul>
+  </div>
+
+  <div class="box info">
+    <div class="box-t">Una aclaración para Expo</div>
+    <p>
+      Esta guía usa <b>React Navigation directamente</b>: <code>@react-navigation/native</code> y los
+      navegadores específicos. Expo también ofrece <b>Expo Router</b>, que está construido sobre React Navigation
+      pero usa rutas basadas en archivos. Son dos formas distintas de organizar una aplicación. No conviene
+      mezclarlas mentalmente: en esta clase vamos a aprender el modelo explícito de React Navigation.
+    </p>
+  </div>
+</section>
+
+<hr>
+
+<section id="instalacion">
+  <span class="sec-num">Sección 2</span>
+  <h2>Instalación en un proyecto Expo</h2>
+  <p class="lede">
+    React Navigation está dividido en un núcleo y varios navegadores. Instalamos solamente lo que vamos a usar.
+  </p>
+
+  <h3>1. Núcleo y dependencias base</h3>
+  <pre><code>npm install @react-navigation/native
+
+npx expo install react-native-screens react-native-safe-area-context</code></pre>
+
+  <p>
+    <code>@react-navigation/native</code> aporta el núcleo de React Navigation. Los navegadores se instalan
+    por separado. En Expo conviene usar <code>npx expo install</code> para las dependencias nativas porque
+    Expo selecciona versiones compatibles con el SDK instalado.
+  </p>
+
+  <h3>2. Native Stack + Bottom Tabs</h3>
+  <pre><code>npm install @react-navigation/native-stack
+npm install @react-navigation/bottom-tabs</code></pre>
+
+  <h3>3. Drawer</h3>
+  <pre><code>npm install @react-navigation/drawer
+
+npx expo install \
+  react-native-gesture-handler \
+  react-native-reanimated \
+  react-native-worklets</code></pre>
+
+  <div class="box warn">
+    <div class="box-t">¿Por qué aparecen Gesture Handler, Reanimated y Worklets?</div>
+    <p>
+      El Drawer depende de gestos y animaciones nativas. <code>react-native-gesture-handler</code> maneja
+      la interacción de arrastre; Reanimated y Worklets permiten ejecutar la lógica de animación de forma
+      adecuada. Si aparecen errores relacionados con <em>worklets</em>, Reanimated o módulos nativos,
+      normalmente hay una instalación/configuración incompatible.
+    </p>
+  </div>
+
+  <h3>El punto de entrada</h3>
+  <pre><code>import { NavigationContainer } from '@react-navigation/native'
+
+export default function App() {
+  return (
+    &lt;NavigationContainer&gt;
+      {/* Acá vive el navigator raíz */}
+    &lt;/NavigationContainer&gt;
+  )
+}</code></pre>
+
+  <div class="box good">
+    <div class="box-t">Regla de oro</div>
+    <p>
+      En una aplicación con React Navigation directo, normalmente existe <b>un NavigationContainer raíz</b>.
+      No necesitás envolver cada navigator en otro <code>NavigationContainer</code>.
+    </p>
+  </div>
+</section>
+
+<hr>
+
+<section id="stack">
+  <span class="sec-num">Sección 3</span>
+  <h2>Stack Navigator: una pila de pantallas</h2>
+  <p class="lede">
+    El Stack representa el flujo más intuitivo: abrís una pantalla encima de otra y luego volvés.
+  </p>
+
+  <p>
+    Pensalo literalmente como una pila de platos. Arrancás con <code>Home</code>. Cuando navegás a
+    <code>Detail</code>, la nueva pantalla se coloca arriba. Si navegás a <code>Edit</code>, queda otra
+    encima. Al hacer <b>back</b>, se retira la pantalla superior.
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 900 360" role="img" aria-label="Pila de navegación con Home, Detail y Edit. Navigate agrega una pantalla arriba. GoBack elimina la pantalla superior y devuelve a Detail.">
+      <text class="t-head" x="30" y="28">STACK = historial LIFO</text>
+
+      <rect class="d-box" x="80" y="236" width="210" height="64" rx="9"/>
+      <text class="t-b" x="185" y="264" text-anchor="middle">Home</text>
+      <text class="t-sm" x="185" y="284" text-anchor="middle">primera ruta</text>
+
+      <rect class="d-box-soft" x="330" y="176" width="210" height="64" rx="9"/>
+      <text class="t-b" x="435" y="204" text-anchor="middle">Detail</text>
+      <text class="t-sm" x="435" y="224" text-anchor="middle">navigation.navigate()</text>
+
+      <rect class="d-info" x="580" y="116" width="210" height="64" rx="9"/>
+      <text class="t-b" x="685" y="144" text-anchor="middle">Edit</text>
+      <text class="t-sm" x="685" y="164" text-anchor="middle">pantalla activa</text>
+
+      <line class="d-line" x1="294" y1="268" x2="324" y2="224"/>
+      <line class="d-line" x1="544" y1="208" x2="574" y2="164"/>
+
+      <text class="t-primary" x="300" y="330">navigate("Detail")</text>
+      <text class="t-primary" x="552" y="330">navigate("Edit")</text>
+      <text class="t-ok" x="790" y="230">goBack()</text>
+      <text class="t-sm" x="790" y="248">quita Edit</text>
+    </svg>
+    <figcaption>
+      <b>La pantalla de arriba es la activa.</b> El Stack conserva las anteriores para poder volver.
+      Esto también explica por qué navegar repetidamente puede producir una pila más larga de la esperada.
+    </figcaption>
+  </figure>
+
+  <pre><code>import { createNativeStackNavigator } from '@react-navigation/native-stack'
+
+const Stack = createNativeStackNavigator()
+
+function AppStack() {
+  return (
+    &lt;Stack.Navigator&gt;
+      &lt;Stack.Screen name="Home" component={HomeScreen} /&gt;
+      &lt;Stack.Screen name="Detail" component={DetailScreen} /&gt;
+      &lt;Stack.Screen name="Edit" component={EditScreen} /&gt;
+    &lt;/Stack.Navigator&gt;
+  )
+}</code></pre>
+
+  <h3>Navegar y volver</h3>
+  <pre><code>import { Button } from 'react-native'
+
+function HomeScreen({ navigation }) {
+  return (
+    &lt;Button
+      title="Ver detalle"
+      onPress={() =&gt; navigation.navigate('Detail')}
+    /&gt;
+  )
+}
+
+function DetailScreen({ navigation }) {
+  return (
+    &lt;Button
+      title="Volver"
+      onPress={() =&gt; navigation.goBack()}
+    /&gt;
+  )
+}</code></pre>
+
+  <div class="box key">
+    <div class="box-t">navigate() no significa simplemente "renderizá este componente"</div>
+    <p>
+      Estás enviando una <b>acción al navigator</b>. El navigator decide cómo cambia su estado.
+      Esa diferencia conceptual es importante: la pantalla no controla directamente qué componente se dibuja;
+      le pide al navigator que cambie de ruta.
+    </p>
+  </div>
+</section>
+
+<hr>
+
+<section id="params">
+  <span class="sec-num">Sección 4</span>
+  <h2>Parámetros: llevar información a otra pantalla</h2>
+  <p class="lede">
+    Una navegación normalmente necesita contexto: ¿qué usuario? ¿qué producto? ¿qué tarea?
+  </p>
+
+  <p>
+    La forma habitual es navegar indicando el nombre de la ruta y un objeto de parámetros. La pantalla destino
+    recibe esos parámetros desde <code>route.params</code>.
+  </p>
+
+  <pre><code>navigation.navigate('Detail', {
+  taskId: task.id,
+})</code></pre>
+
+  <pre><code>function DetailScreen({ route }) {
+  const { taskId } = route.params
+
+  return (
+    &lt;View&gt;
+      &lt;Text&gt;Tarea: {taskId}&lt;/Text&gt;
+    &lt;/View&gt;
+  )
+}</code></pre>
+
+  <div class="cols">
+    <div class="box good">
+      <div class="box-t">Preferible: pasar un ID</div>
+      <pre style="margin:0;border:none;background:transparent;padding:0"><code>navigate('Detail', {
+  taskId: task.id
+})</code></pre>
+      <p style="margin-top:12px">
+        El detalle puede consultar la fuente de verdad y obtener el dato actualizado.
+      </p>
+    </div>
+    <div class="box warn">
+      <div class="box-t">Cuidado: pasar objetos grandes</div>
+      <pre style="margin:0;border:none;background:transparent;padding:0"><code>navigate('Detail', {
+  task: task
+})</code></pre>
+      <p style="margin-top:12px">
+        Es válido en casos simples, pero puede generar datos desactualizados si el objeto cambia en otro lugar.
+      </p>
+    </div>
+  </div>
+
+  <h3>Params no son almacenamiento global</h3>
+  <p>
+    Un parámetro sirve para transportar información relacionada con una ruta. No es una sustitución de
+    Context, Redux, Zustand o una base de datos. Si una información debe ser compartida por muchas partes
+    de la aplicación, conviene que exista una fuente de verdad apropiada.
+  </p>
+
+  <div class="box warn">
+    <div class="box-t">No pongas cualquier cosa en params</div>
+    <p>
+      Evitá usar params como depósito de estado de la aplicación, especialmente para objetos enormes,
+      funciones o estructuras que deberían vivir en otro lugar. Para navegación, lo más robusto suele ser
+      que los params describan <b>qué recurso</b> estamos viendo, por ejemplo <code>userId</code> o
+      <code>productId</code>.
+    </p>
+  </div>
+</section>
+
+<hr>
+
+<section id="tabs">
+  <span class="sec-num">Sección 5</span>
+  <h2>Bottom Tabs: las áreas principales de la aplicación</h2>
+  <p class="lede">
+    Tabs no reemplaza al Stack. Cumplen problemas diferentes y normalmente trabajan juntos.
+  </p>
+
+  <p>
+    Las Bottom Tabs son apropiadas cuando una aplicación tiene varias áreas principales que el usuario
+    puede cambiar rápidamente: <b>Inicio</b>, <b>Buscar</b>, <b>Favoritos</b>, <b>Perfil</b>.
+    Cada tab representa una ruta y tiene su propio estado de navegación.
+  </p>
+
+  <pre><code>import { createBottomTabNavigator } from '@react-navigation/bottom-tabs'
+
+const Tab = createBottomTabNavigator()
+
+function MainTabs() {
+  return (
+    &lt;Tab.Navigator&gt;
+      &lt;Tab.Screen name="Home" component={HomeScreen} /&gt;
+      &lt;Tab.Screen name="Search" component={SearchScreen} /&gt;
+      &lt;Tab.Screen name="Profile" component={ProfileScreen} /&gt;
+    &lt;/Tab.Navigator&gt;
+  )
+}</code></pre>
+
+  <div class="demo">
+    <div class="demo-head">
+      <span class="demo-tag">Demo conceptual</span>
+      <h3>Las tabs cambian de área, no agregan una pantalla encima</h3>
+    </div>
+    <p class="demo-sub">Probá cambiar de tab. La idea es visualizar la diferencia con un Stack.</p>
+
+    <div class="phone-demo">
+      <div class="phone-top"><strong id="tab-title">Inicio</strong><span>9:41</span></div>
+      <div class="phone-body" id="tab-body">
+        <div class="screen-card"><strong>HomeScreen</strong><span>Área principal de la aplicación.</span></div>
+      </div>
+      <div class="phone-bottom">
+        <button class="tab-btn active" data-tab="Inicio">Inicio</button>
+        <button class="tab-btn" data-tab="Buscar">Buscar</button>
+        <button class="tab-btn" data-tab="Perfil">Perfil</button>
+      </div>
+    </div>
+  </div>
+
+  <h3>La combinación más común: Tab + Stack</h3>
+
+  <pre><code>function HomeStack() {
+  return (
+    &lt;Stack.Navigator&gt;
+      &lt;Stack.Screen name="Home" component={HomeScreen} /&gt;
+      &lt;Stack.Screen name="Detail" component={DetailScreen} /&gt;
+    &lt;/Stack.Navigator&gt;
+  )
+}
+
+function MainTabs() {
+  return (
+    &lt;Tab.Navigator&gt;
+      &lt;Tab.Screen name="HomeTab" component={HomeStack} /&gt;
+      &lt;Tab.Screen name="SearchTab" component={SearchScreen} /&gt;
+      &lt;Tab.Screen name="ProfileTab" component={ProfileScreen} /&gt;
+    &lt;/Tab.Navigator&gt;
+  )
+}</code></pre>
+
+  <figure>
+    <svg viewBox="0 0 900 330" role="img" aria-label="Bottom tabs que contienen stacks. La tab Home contiene un Stack con Home y Detail. Search y Profile son rutas hermanas.">
+      <text class="t-head" x="30" y="28">Un Tab puede contener un Stack completo</text>
+
+      <rect class="d-box-soft" x="30" y="64" width="250" height="190" rx="12"/>
+      <text class="t-b" x="155" y="90" text-anchor="middle">Bottom Tab Navigator</text>
+
+      <rect class="d-ok" x="50" y="112" width="210" height="56" rx="8"/>
+      <text class="t-b" x="155" y="136" text-anchor="middle">HomeTab</text>
+      <text class="t-sm" x="155" y="154" text-anchor="middle">contiene HomeStack</text>
+
+      <rect class="d-box" x="50" y="178" width="210" height="56" rx="8"/>
+      <text class="t-b" x="155" y="202" text-anchor="middle">SearchTab</text>
+      <text class="t-sm" x="155" y="220" text-anchor="middle">pantalla simple</text>
+
+      <rect class="d-box" x="330" y="64" width="240" height="190" rx="12"/>
+      <text class="t-b" x="450" y="90" text-anchor="middle">HomeStack</text>
+      <rect class="d-box-soft" x="350" y="112" width="200" height="48" rx="8"/>
+      <text class="t" x="450" y="141" text-anchor="middle">Home</text>
+      <rect class="d-info" x="350" y="174" width="200" height="48" rx="8"/>
+      <text class="t" x="450" y="203" text-anchor="middle">Detail</text>
+
+      <rect class="d-box" x="620" y="64" width="250" height="190" rx="12"/>
+      <text class="t-b" x="745" y="90" text-anchor="middle">Resultado</text>
+      <text class="t-sm" x="745" y="122" text-anchor="middle">Home → Detail</text>
+      <text class="t-sm" x="745" y="145" text-anchor="middle">la barra de tabs puede</text>
+      <text class="t-sm" x="745" y="162" text-anchor="middle">seguir existiendo mientras</text>
+      <text class="t-sm" x="745" y="179" text-anchor="middle">el Stack avanza</text>
+      <text class="t-primary" x="745" y="214" text-anchor="middle">dos niveles de navegación</text>
+    </svg>
+    <figcaption>
+      <b>Este patrón es fundamental.</b> La tab representa una sección; el Stack representa el flujo interno
+      de esa sección. Así podés entrar a un detalle sin perder el contexto de la tab.
+    </figcaption>
+  </figure>
+
+  <div class="box key">
+    <div class="box-t">Regla práctica</div>
+    <p>
+      Si algo es una <b>sección principal</b> de la aplicación → probablemente Tab.
+      Si algo es una <b>pantalla dentro de una sección</b> → probablemente Stack.
+    </p>
+  </div>
+</section>
+
+<hr>
+
+<section id="drawer">
+  <span class="sec-num">Sección 6</span>
+  <h2>Drawer Navigator: navegación lateral</h2>
+  <p class="lede">
+    El Drawer agrega un menú lateral que se abre mediante un gesto o un botón.
+  </p>
+
+  <p>
+    Es útil cuando hay muchas secciones secundarias o cuando el menú ocupa demasiado espacio para estar
+    permanentemente visible en tabs. El usuario puede abrirlo y elegir una ruta.
+  </p>
+
+  <pre><code>import { createDrawerNavigator } from '@react-navigation/drawer'
+
+const Drawer = createDrawerNavigator()
+
+function AppDrawer() {
+  return (
+    &lt;Drawer.Navigator&gt;
+      &lt;Drawer.Screen name="Home" component={HomeScreen} /&gt;
+      &lt;Drawer.Screen name="Settings" component={SettingsScreen} /&gt;
+      &lt;Drawer.Screen name="Help" component={HelpScreen} /&gt;
+    &lt;/Drawer.Navigator&gt;
+  )
+}</code></pre>
+
+  <div class="demo">
+    <div class="demo-head">
+      <span class="demo-tag">Demo conceptual</span>
+      <h3>Un Drawer es otro Navigator</h3>
+    </div>
+    <p class="demo-sub">Abrí el menú y cambiá de pantalla. En una app real, el gesto de arrastre abre/cierra el Drawer.</p>
+
+    <div class="phone-demo">
+      <div class="phone-top"><strong>Configuración</strong><button id="open-drawer" style="padding:3px 8px;font-size:12px">☰</button></div>
+      <div class="drawer">
+        <div class="drawer-panel" id="drawer-panel">
+          <strong style="display:block;margin-bottom:12px">Mi aplicación</strong>
+          <button class="drawer-item active" data-drawer="Inicio">Inicio</button>
+          <button class="drawer-item" data-drawer="Configuración">Configuración</button>
+          <button class="drawer-item" data-drawer="Ayuda">Ayuda</button>
+        </div>
+        <div class="fake-detail" id="drawer-detail">
+          <strong>Contenido</strong>
+          <p style="font-size:13px;color:var(--muted)">El Drawer administra las rutas laterales.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <h3>Controlar el Drawer desde una pantalla</h3>
+  <pre><code>function HomeScreen({ navigation }) {
+  return (
+    &lt;Button
+      title="Abrir menú"
+      onPress={() =&gt; navigation.openDrawer()}
+    /&gt;
+  )
+}</code></pre>
+
+  <div class="box warn">
+    <div class="box-t">Drawer y Tabs no son intercambiables</div>
+    <p>
+      Las tabs están pensadas para <b>cambiar frecuentemente entre áreas principales</b>.
+      El Drawer está pensado para <b>descubrir/acceder a secciones desde un menú lateral</b>.
+      Una aplicación puede usar ambos, pero hay que definir claramente qué nivel de navegación representa cada uno.
+    </p>
+  </div>
+</section>
+
+<hr>
+
+<section id="anidada">
+  <span class="sec-num">Sección 7</span>
+  <h2>Navegación anidada: donde realmente empieza la aplicación real</h2>
+  <p class="lede">
+    Stack, Tabs y Drawer no son tres opciones excluyentes. Se pueden combinar.
+  </p>
+
+  <p>
+    Una arquitectura frecuente es tener un Drawer raíz, dentro una sección principal con Tabs, y dentro de
+    cada tab un Stack. El secreto para no perderse es preguntar siempre: <b>¿qué navigator es el padre de esta ruta?</b>
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 900 390" role="img" aria-label="Ejemplo de navegación anidada: Drawer raíz contiene MainTabs. MainTabs contiene HomeStack y ProfileStack. HomeStack contiene Home y Detail.">
+      <text class="t-head" x="30" y="28">Ejemplo: Drawer → Tabs → Stack</text>
+
+      <rect class="d-box-soft" x="30" y="58" width="840" height="300" rx="14"/>
+      <text class="t-b" x="450" y="84" text-anchor="middle">Drawer Navigator · nivel raíz</text>
+
+      <rect class="d-info" x="60" y="108" width="780" height="218" rx="12"/>
+      <text class="t-b" x="450" y="134" text-anchor="middle">MainTabs · navegación principal</text>
+
+      <rect class="d-box" x="90" y="158" width="330" height="138" rx="10"/>
+      <text class="t-b" x="255" y="184" text-anchor="middle">HomeStack</text>
+      <rect class="d-box-soft" x="115" y="202" width="280" height="38" rx="7"/>
+      <text class="t" x="255" y="226" text-anchor="middle">Home</text>
+      <rect class="d-box-soft" x="115" y="248" width="280" height="38" rx="7"/>
+      <text class="t" x="255" y="272" text-anchor="middle">Detail</text>
+
+      <rect class="d-box" x="480" y="158" width="330" height="138" rx="10"/>
+      <text class="t-b" x="645" y="184" text-anchor="middle">ProfileStack</text>
+      <rect class="d-box-soft" x="505" y="202" width="280" height="38" rx="7"/>
+      <text class="t" x="645" y="226" text-anchor="middle">Profile</text>
+      <rect class="d-box-soft" x="505" y="248" width="280" height="38" rx="7"/>
+      <text class="t" x="645" y="272" text-anchor="middle">EditProfile</text>
+
+      <text class="t-primary" x="450" y="345" text-anchor="middle">cada nivel tiene su propio estado de navegación</text>
+    </svg>
+    <figcaption>
+      <b>La anidación crea jerarquías.</b> Cuando una acción parece "no funcionar", muchas veces el problema
+      es que se está intentando actuar sobre un navigator distinto del que realmente contiene la ruta.
+    </figcaption>
+  </figure>
+
+  <h3>Ejemplo de estructura</h3>
+  <pre><code>NavigationContainer
+└── DrawerNavigator
+    ├── MainTabs
+    │   ├── HomeStack
+    │   │   ├── Home
+    │   │   └── Detail
+    │   └── ProfileStack
+    │       ├── Profile
+    │       └── EditProfile
+    └── Settings</code></pre>
+
+  <div class="box key">
+    <div class="box-t">La pregunta correcta ante un problema de navegación</div>
+    <p>
+      No preguntes solamente "¿por qué <code>navigate()</code> no funciona?".
+      Preguntá: <b>"¿en qué navigator está registrada la ruta que quiero abrir?"</b>.
+      Esa pregunta suele revelar el problema inmediatamente.
+    </p>
+  </div>
+</section>
+
+<hr>
+
+<section id="back">
+  <span class="sec-num">Sección 8</span>
+  <h2>Back, historial y comportamiento de cada navigator</h2>
+  <p class="lede">
+    "Volver" no significa exactamente lo mismo en un Stack, un Tab y un Drawer.
+  </p>
+
+  <table>
+    <tr><th>Situación</th><th>Qué representa</th><th>Acción típica</th></tr>
+    <tr>
+      <td><b>Stack</b></td>
+      <td>volver a la pantalla anterior</td>
+      <td><code>navigation.goBack()</code></td>
+    </tr>
+    <tr>
+      <td><b>Stack</b></td>
+      <td>ir a una ruta concreta</td>
+      <td><code>navigation.navigate('Home')</code></td>
+    </tr>
+    <tr>
+      <td><b>Stack</b></td>
+      <td>reemplazar la pantalla actual</td>
+      <td><code>navigation.replace('Home')</code></td>
+    </tr>
+    <tr>
+      <td><b>Drawer</b></td>
+      <td>abrir/cerrar menú</td>
+      <td><code>openDrawer()</code> / <code>closeDrawer()</code></td>
+    </tr>
+    <tr>
+      <td><b>Tabs</b></td>
+      <td>cambiar de sección</td>
+      <td><code>navigate('Profile')</code></td>
+    </tr>
+  </table>
+
+  <h3>push() vs navigate()</h3>
+  <pre><code>// navigate: busca una ruta existente según el comportamiento
+// del navigator y puede llevarte a ella.
+navigation.navigate('Detail', { taskId })
+
+// push: agrega otra instancia de la ruta al Stack.
+navigation.push('Detail', { taskId })</code></pre>
+
+  <div class="box warn">
+    <div class="box-t">Ejemplo de bug</div>
+    <p>
+      Si una pantalla hace <code>push('Detail')</code> cada vez que el usuario toca un botón, podés terminar
+      con <code>Home → Detail → Detail → Detail</code>. El usuario tendrá que apretar Back varias veces.
+      La decisión entre <code>navigate</code>, <code>push</code> y <code>replace</code> debe representar
+      el flujo real de la aplicación.
+    </p>
+  </div>
+
+  <h3>Después del login: replace</h3>
+  <pre><code>// Login → Home
+navigation.replace('Home')</code></pre>
+
+  <p>
+    La intención suele ser que el usuario no vuelva al login apretando Back. Para flujos de autenticación
+    más completos, es preferible que el árbol de navegación dependa del estado de autenticación y no intentar
+    controlar todo con una cadena de <code>replace()</code>.
+  </p>
+</section>
+
+<hr>
+
+<section id="layout">
+  <span class="sec-num">Sección 9</span>
+  <h2>Headers, Safe Area y quién controla el espacio</h2>
+  <p class="lede">
+    Navegar no es solamente cambiar de pantalla: los navegadores también pueden dibujar UI alrededor de ella.
+  </p>
+
+  <h3>Opciones del Stack</h3>
+  <pre><code>&lt;Stack.Navigator
+  screenOptions={{
+    headerShown: true,
+    headerStyle: {
+      backgroundColor: '#211710',
+    },
+    headerTintColor: '#fff',
+  }}
+&gt;
+  &lt;Stack.Screen
+    name="Home"
+    component={HomeScreen}
+    options={{
+      title: 'Inicio',
+    }}
+  /&gt;
+&lt;/Stack.Navigator&gt;</code></pre>
+
+  <p>
+    <code>screenOptions</code> permite definir valores comunes para muchas pantallas.
+    <code>options</code> permite personalizar una pantalla específica. Esta distinción evita repetir
+    configuración en cada <code>Screen</code>.
+  </p>
+
+  <h3>Safe Area</h3>
+  <p>
+    Los teléfonos modernos tienen zonas que no deberían quedar tapadas por el notch, Dynamic Island,
+    barra de estado o indicadores del sistema. React Native ofrece <code>SafeAreaView</code> y,
+    para casos más flexibles, <code>useSafeAreaInsets()</code>.
+  </p>
+
+  <pre><code>import { useSafeAreaInsets } from 'react-native-safe-area-context'
+
+function CustomScreen() {
+  const insets = useSafeAreaInsets()
+
+  return (
+    &lt;View style={{
+      paddingTop: insets.top,
+      paddingBottom: insets.bottom,
+    }}&gt;
+      {/* contenido */}
+    &lt;/View&gt;
+  )
+}</code></pre>
+
+  <div class="box warn">
+    <div class="box-t">No agregues padding "a ojo"</div>
+    <p>
+      Un <code>paddingTop: 50</code> puede verse bien en un teléfono y mal en otro.
+      Cuando el problema está relacionado con el área segura del dispositivo, usá los insets reales.
+    </p>
+  </div>
+
+  <div class="box good">
+    <div class="box-t">Otra regla importante</div>
+    <p>
+      Si el navigator ya administra un header, no construyas otro header manualmente sin entender quién
+      está ocupando el espacio. Muchos problemas de "contenido debajo del header" son simplemente una
+      doble administración del layout.
+    </p>
+  </div>
+</section>
+
+<hr>
+
+<section id="auth">
+  <span class="sec-num">Sección 10</span>
+  <h2>Autenticación: navegación pública y privada</h2>
+  <p class="lede">
+    El login no debería ser simplemente una pantalla más dentro del mismo árbol de navegación.
+  </p>
+
+  <p>
+    Una aplicación suele tener dos mundos: rutas que cualquier usuario puede visitar y rutas disponibles
+    solamente cuando existe una sesión válida.
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 900 320" role="img" aria-label="Árbol de navegación condicionado por autenticación. Si no hay sesión se muestra AuthStack. Si hay sesión se muestra AppStack. El estado de sesión decide qué árbol existe.">
+      <text class="t-head" x="30" y="28">La sesión decide qué árbol de navegación existe</text>
+
+      <rect class="d-box-soft" x="330" y="52" width="240" height="62" rx="10"/>
+      <text class="t-b" x="450" y="78" text-anchor="middle">Auth state</text>
+      <text class="t-mono" x="450" y="98" text-anchor="middle">session ? ... : ...</text>
+
+      <line class="d-line-bad" x1="400" y1="116" x2="220" y2="174"/>
+      <line class="d-line-ok" x1="500" y1="116" x2="680" y2="174"/>
+
+      <text class="t-bad" x="295" y="150">sin sesión</text>
+      <text class="t-ok" x="605" y="150">con sesión</text>
+
+      <rect class="d-bad" x="70" y="178" width="300" height="78" rx="10"/>
+      <text class="t-b" x="220" y="204" text-anchor="middle">AuthStack</text>
+      <text class="t-sm" x="220" y="226" text-anchor="middle">Login · Register · ForgotPassword</text>
+
+      <rect class="d-ok" x="530" y="178" width="300" height="78" rx="10"/>
+      <text class="t-b" x="680" y="204" text-anchor="middle">AppStack / AppDrawer</text>
+      <text class="t-sm" x="680" y="226" text-anchor="middle">Home · Profile · Settings · Detail</text>
+
+      <text class="t-primary" x="450" y="294" text-anchor="middle">no necesitás esconder cada botón: el árbol mismo define qué rutas existen</text>
+    </svg>
+    <figcaption>
+      <b>El estado de autenticación es una condición arquitectónica.</b> Cuando cambia la sesión,
+      cambia el árbol de navegación disponible.
+    </figcaption>
+  </figure>
+
+  <pre><code>function RootNavigator() {
+  const { session } = useAuth()
+
+  return (
+    &lt;NavigationContainer&gt;
+      {session ? &lt;AppNavigator /&gt; : &lt;AuthNavigator /&gt;}
+    &lt;/NavigationContainer&gt;
+  )
+}</code></pre>
+
+  <div class="box good">
+    <div class="box-t">Ventaja</div>
+    <p>
+      Un usuario sin sesión no necesita que todas las pantallas privadas estén "protegidas" con ifs.
+      Esas rutas directamente no forman parte del árbol activo.
+    </p>
+  </div>
+</section>
+
+<hr>
+
+<section id="deep">
+  <span class="sec-num">Sección 11</span>
+  <h2>Deep linking: entrar directamente a una pantalla</h2>
+  <p class="lede">
+    Una aplicación real no siempre empieza en Home: puede abrirse desde una notificación, un enlace o un QR.
+  </p>
+
+  <p>
+    El deep linking permite mapear URLs o esquemas de aplicación a rutas de React Navigation.
+    Por ejemplo, un enlace conceptual como <code>miapp://tasks/42</code> podría llevar directamente
+    al detalle de la tarea 42.
+  </p>
+
+  <pre><code>const linking = {
+  prefixes: ['miapp://', 'https://miapp.example'],
+  config: {
+    screens: {
+      Home: '',
+      Detail: 'tasks/:taskId',
+    },
+  },
+}
+
+&lt;NavigationContainer linking={linking}&gt;
+  &lt;AppNavigator /&gt;
+&lt;/NavigationContainer&gt;</code></pre>
+
+  <div class="box info">
+    <div class="box-t">Por qué esto importa</div>
+    <p>
+      Deep linking obliga a pensar la navegación como rutas reales y no como simples botones.
+      También afecta notificaciones push, autenticación, navegación desde emails y enlaces compartidos.
+    </p>
+  </div>
+
+  <h3>El caso difícil: deep link + login</h3>
+  <p>
+    Si el usuario toca un enlace a una pantalla privada pero todavía no está autenticado, la aplicación
+    debe recordar la intención, mostrar login y después continuar hacia la ruta original. Esto es un flujo
+    de navegación, no simplemente un <code>navigate()</code> aislado.
+  </p>
+</section>
+
+<hr>
+
+<section id="errores">
+  <span class="sec-num">Sección 12</span>
+  <h2>Los errores clásicos de React Navigation</h2>
+  <p class="lede">
+    La mayoría de los problemas no vienen de la sintaxis: vienen de no entender la jerarquía.
+  </p>
+
+  <div class="box warn">
+    <div class="box-t">Error 1 · "The action 'NAVIGATE' was not handled"</div>
+    <p>
+      Normalmente significa que el navigator que recibió la acción no tiene una ruta con ese nombre,
+      o que la ruta está dentro de un navigator hijo y estás intentando navegar desde el nivel equivocado.
+      Revisá quién contiene realmente la ruta.
+    </p>
+  </div>
+
+  <div class="box warn">
+    <div class="box-t">Error 2 · múltiples NavigationContainer</div>
+    <p>
+      En una app normal debe existir un container raíz. Crear containers anidados puede generar árboles
+      de navegación independientes y comportamientos inesperados.
+    </p>
+  </div>
+
+  <div class="box warn">
+    <div class="box-t">Error 3 · nombres de rutas inconsistentes</div>
+    <pre style="margin:0"><code>&lt;Stack.Screen name="TaskDetail" ... /&gt;
+
+navigation.navigate('Detail') // ❌ no existe</code></pre>
+  </div>
+
+  <div class="box warn">
+    <div class="box-t">Error 4 · usar params como estado global</div>
+    <p>
+      Si diez pantallas necesitan leer y modificar el mismo usuario, pasar el usuario por params
+      de una pantalla a otra no escala. Usá una fuente de estado apropiada.
+    </p>
+  </div>
+
+  <div class="box warn">
+    <div class="box-t">Error 5 · poner todo en un único Stack</div>
+    <p>
+      Al principio funciona. Después aparecen Home, Login, Settings, Profile, Detail, EditProfile,
+      Modal y 25 pantallas más dentro de un mismo navigator. La solución no es crear un Stack gigante:
+      hay que modelar la jerarquía de navegación.
+    </p>
+  </div>
+
+  <div class="box good">
+    <div class="box-t">Checklist de debugging</div>
+    <ul class="check-list">
+      <li>¿La ruta existe realmente?</li>
+      <li>¿Está en este navigator o en un hijo?</li>
+      <li>¿Estoy llamando a <code>navigate</code>, <code>push</code> o <code>replace</code> intencionalmente?</li>
+      <li>¿Los nombres de las rutas coinciden exactamente?</li>
+      <li>¿Estoy creando accidentalmente otro NavigationContainer?</li>
+      <li>¿El usuario tiene permiso/sesión para que esa ruta exista?</li>
+      <li>¿El problema es de navegación o en realidad de layout/Safe Area?</li>
+    </ul>
+  </div>
+</section>
+
+<hr>
+
+<section id="proyecto">
+  <span class="sec-num">Sección 13</span>
+  <h2>Una arquitectura completa para una app Expo</h2>
+  <p class="lede">
+    Ahora juntamos todo en una estructura que podría crecer sin convertirse en un archivo gigante.
+  </p>
+
+  <h3>Estructura de carpetas</h3>
+  <pre><code>src/
+├── navigation/
+│   ├── RootNavigator.tsx
+│   ├── AuthNavigator.tsx
+│   ├── AppDrawer.tsx
+│   ├── MainTabs.tsx
+│   ├── HomeStack.tsx
+│   └── ProfileStack.tsx
+│
+├── screens/
+│   ├── auth/
+│   │   ├── LoginScreen.tsx
+│   │   └── RegisterScreen.tsx
+│   ├── home/
+│   │   ├── HomeScreen.tsx
+│   │   └── TaskDetailScreen.tsx
+│   └── profile/
+│       ├── ProfileScreen.tsx
+│       └── EditProfileScreen.tsx
+│
+├── components/
+├── hooks/
+├── services/
+└── types/</code></pre>
+
+  <h3>Root Navigator</h3>
+  <pre><code>export function RootNavigator() {
+  const { session } = useAuth()
+
+  return (
+    &lt;NavigationContainer&gt;
+      {session ? &lt;AppNavigator /&gt; : &lt;AuthNavigator /&gt;}
+    &lt;/NavigationContainer&gt;
+  )
+}</code></pre>
+
+  <h3>App Navigator</h3>
+  <pre><code>function AppNavigator() {
+  return (
+    &lt;Drawer.Navigator&gt;
+      &lt;Drawer.Screen
+        name="Main"
+        component={MainTabs}
+        options={{ headerShown: false }}
+      /&gt;
+
+      &lt;Drawer.Screen
+        name="Settings"
+        component={SettingsScreen}
+      /&gt;
+    &lt;/Drawer.Navigator&gt;
+  )
+}</code></pre>
+
+  <h3>Main Tabs</h3>
+  <pre><code>function MainTabs() {
+  return (
+    &lt;Tab.Navigator&gt;
+      &lt;Tab.Screen
+        name="HomeTab"
+        component={HomeStack}
+        options={{ headerShown: false }}
+      /&gt;
+
+      &lt;Tab.Screen
+        name="ProfileTab"
+        component={ProfileStack}
+        options={{ headerShown: false }}
+      /&gt;
+    &lt;/Tab.Navigator&gt;
+  )
+}</code></pre>
+
+  <h3>Home Stack</h3>
+  <pre><code>function HomeStack() {
+  return (
+    &lt;Stack.Navigator&gt;
+      &lt;Stack.Screen name="Home" component={HomeScreen} /&gt;
+      &lt;Stack.Screen name="Detail" component={TaskDetailScreen} /&gt;
+    &lt;/Stack.Navigator&gt;
+  )
+}</code></pre>
+
+  <figure>
+    <svg viewBox="0 0 900 430" role="img" aria-label="Arquitectura final de una aplicación Expo con autenticación, Drawer raíz, Bottom Tabs y Stacks internos.">
+      <text class="t-head" x="30" y="28">Arquitectura final</text>
+
+      <rect class="d-box-soft" x="290" y="48" width="320" height="54" rx="10"/>
+      <text class="t-b" x="450" y="81" text-anchor="middle">NavigationContainer</text>
+
+      <line class="d-line" x1="450" y1="106" x2="450" y2="136"/>
+
+      <rect class="d-box" x="180" y="142" width="540" height="54" rx="10"/>
+      <text class="t-b" x="450" y="175" text-anchor="middle">RootNavigator · sesión</text>
+
+      <line class="d-line" x1="320" y1="200" x2="210" y2="238"/>
+      <line class="d-line" x1="580" y1="200" x2="690" y2="238"/>
+
+      <rect class="d-bad" x="70" y="244" width="280" height="82" rx="10"/>
+      <text class="t-b" x="210" y="270" text-anchor="middle">AuthNavigator</text>
+      <text class="t-sm" x="210" y="292" text-anchor="middle">Login · Register · Recovery</text>
+      <text class="t-bad" x="210" y="314" text-anchor="middle">sin sesión</text>
+
+      <rect class="d-ok" x="550" y="244" width="280" height="82" rx="10"/>
+      <text class="t-b" x="690" y="270" text-anchor="middle">AppDrawer</text>
+      <text class="t-sm" x="690" y="292" text-anchor="middle">MainTabs · Settings</text>
+      <text class="t-ok" x="690" y="314" text-anchor="middle">con sesión</text>
+
+      <line class="d-line" x1="690" y1="330" x2="690" y2="354"/>
+
+      <rect class="d-info" x="550" y="360" width="280" height="54" rx="10"/>
+      <text class="t-b" x="690" y="393" text-anchor="middle">MainTabs → HomeStack / ProfileStack</text>
+    </svg>
+    <figcaption>
+      <b>La navegación se modela como un árbol.</b> Cada nivel responde una pregunta diferente:
+      ¿está autenticado?, ¿en qué sección está?, ¿qué pantalla de esa sección está viendo?
+    </figcaption>
+  </figure>
+
+  <h3>Tipado con TypeScript</h3>
+  <p>
+    En un proyecto profesional, uno de los mayores beneficios de TypeScript es poder tipar los nombres de
+    las rutas y sus parámetros. Así un typo como <code>navigate('Detial')</code> deja de ser un bug que
+    descubrís al ejecutar la app.
+  </p>
+
+  <pre><code>type HomeStackParamList = {
+  Home: undefined
+  Detail: { taskId: string }
+  Edit: { taskId: string }
+}
+
+const Stack = createNativeStackNavigator&lt;HomeStackParamList&gt;()
+
+// Ahora TypeScript conoce:
+navigation.navigate('Detail', { taskId: 'abc' })
+
+// Y rechaza:
+navigation.navigate('Detail') // ❌ falta taskId
+navigation.navigate('Unknown') // ❌ ruta inexistente</code></pre>
+
+  <div class="box key">
+    <div class="box-t">El objetivo de esta clase</div>
+    <p>
+      No memorizar veinte métodos de navegación. El objetivo es poder mirar una aplicación y decidir:
+      <b>qué parte es Stack, qué parte es Tabs, qué parte es Drawer, dónde vive cada ruta,
+      qué información necesita y quién es responsable de volver.</b>
+    </p>
+  </div>
+</section>
+
+<hr>
+
+<section>
+  <span class="sec-num">Resumen</span>
+  <h2>La chuleta final</h2>
+
+  <table>
+    <tr><th>Concepto</th><th>Pregunta que responde</th><th>Herramienta</th></tr>
+    <tr><td><b>Stack</b></td><td>¿Qué pantalla está encima de cuál?</td><td><code>createNativeStackNavigator()</code></td></tr>
+    <tr><td><b>Bottom Tabs</b></td><td>¿En qué sección principal estoy?</td><td><code>createBottomTabNavigator()</code></td></tr>
+    <tr><td><b>Drawer</b></td><td>¿Qué sección quiero abrir desde el menú lateral?</td><td><code>createDrawerNavigator()</code></td></tr>
+    <tr><td><b>navigate</b></td><td>¿A qué ruta quiero ir?</td><td><code>navigation.navigate()</code></td></tr>
+    <tr><td><b>goBack</b></td><td>¿Cómo vuelvo?</td><td><code>navigation.goBack()</code></td></tr>
+    <tr><td><b>params</b></td><td>¿Qué contexto necesita la ruta?</td><td><code>route.params</code></td></tr>
+    <tr><td><b>options</b></td><td>¿Cómo se presenta esta pantalla?</td><td><code>screenOptions</code> / <code>options</code></td></tr>
+    <tr><td><b>Safe Area</b></td><td>¿Dónde puedo dibujar sin invadir el sistema?</td><td><code>useSafeAreaInsets()</code></td></tr>
+    <tr><td><b>Auth state</b></td><td>¿Qué árbol de navegación existe?</td><td>condición del Root Navigator</td></tr>
+    <tr><td><b>Deep linking</b></td><td>¿Cómo llego directamente a una ruta?</td><td><code>linking</code></td></tr>
+  </table>
+
+  <div class="box good">
+    <div class="box-t">Regla final</div>
+    <p>
+      <b>Tabs cambian de área. Stack profundiza dentro de un área. Drawer abre un menú de secciones.
+      Los navegadores pueden anidarse. Params transportan contexto. El estado de autenticación decide
+      qué árbol existe.</b>
+    </p>
+  </div>
+
+  <footer>
+    Material didáctico basado en la estructura del material de listas de React Native de la clase anterior:
+    explicación conceptual → diagramas → código → errores → arquitectura.
+    La parte de instalación y APIs fue contrastada con la documentación oficial actual de React Navigation y Expo.
+  </footer>
+</section>
+
+</div>
+
+<script>
+(function () {
+  // Demo Bottom Tabs
+  const title = document.getElementById('tab-title')
+  const body = document.getElementById('tab-body')
+  const tabTexts = {
+    Inicio: ['HomeScreen', 'Área principal de la aplicación.'],
+    Buscar: ['SearchScreen', 'Otra sección principal.'],
+    Perfil: ['ProfileScreen', 'Perfil del usuario.']
+  }
+
+  document.querySelectorAll('[data-tab]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const name = btn.dataset.tab
+      document.querySelectorAll('[data-tab]').forEach(b => b.classList.toggle('active', b === btn))
+      title.textContent = name
+      body.innerHTML =
+        '<div class="screen-card"><strong>' + tabTexts[name][0] + '</strong><span>' +
+        tabTexts[name][1] + '</span></div>' +
+        '<div class="screen-card"><strong>Concepto</strong><span>La tab cambia la ruta activa del Tab Navigator.</span></div>'
+    })
+  })
+
+  // Demo Drawer
+  const drawerPanel = document.getElementById('drawer-panel')
+  const drawerDetail = document.getElementById('drawer-detail')
+  const openDrawer = document.getElementById('open-drawer')
+
+  openDrawer.addEventListener('click', () => {
+    drawerPanel.style.display = drawerPanel.style.display === 'none' ? 'block' : 'none'
+  })
+
+  document.querySelectorAll('[data-drawer]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('[data-drawer]').forEach(b => b.classList.toggle('active', b === btn))
+      drawerDetail.innerHTML =
+        '<strong>' + btn.dataset.drawer + '</strong>' +
+        '<p style="font-size:13px;color:var(--muted)">Ruta activa dentro del Drawer.</p>'
+      drawerPanel.style.display = 'none'
+    })
+  })
+})();
+</script>
+
+</body>
+</html>
