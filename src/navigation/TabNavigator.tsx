@@ -4,8 +4,9 @@ import ProfileStack from "./ProfileStack";
 import TaskStack from "./TaskStack";
 import Ionicons from "@react-native-vector-icons/ionicons";
 import {colors} from "../theme/colors";
+import { TabParamList } from "./types";
 
-const Tab = createBottomTabNavigator();
+const Tab = createBottomTabNavigator<TabParamList>();
 
 const TabNavigator = () => {
     return (

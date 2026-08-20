@@ -11,18 +11,17 @@ import {
   View
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { CATEGORIES, Category, createId, DueDate, DUE_DATES, Task } from '../types'
+import { CATEGORIES, Category, DueDate, DUE_DATES } from '../types'
 import { colors, radius, shadow, spacing } from '../theme'
-
-type Props = {
-  onAdd: (task: Task) => void
-}
+import { useAppDispatch } from '../store/hooks'
+import { addTask } from '../features/tasks/tasksSlice'
 
 const CATEGORY_KEYS = Object.keys(CATEGORIES) as Category[]
 const DATE_KEYS = Object.keys(DUE_DATES) as DueDate[]
 
-export default function TaskForm({ onAdd }: Props) {
+export default function TaskForm() {
   const insets = useSafeAreaInsets()
+  const dispatch = useAppDispatch()
   const [open, setOpen] = useState(false)
 
   const [title, setTitle] = useState('')
@@ -35,14 +34,16 @@ export default function TaskForm({ onAdd }: Props) {
 
   const handleSubmit = () => {
     if (!canSubmit) return
-    onAdd({
-      id: createId(),
-      title: title.trim(),
-      description: description.trim(),
-      category,
-      date,
-      completed: false
-    })
+    // El id y el completed los pone la acción (prepare + nanoid):
+    // el formulario solo describe QUÉ tarea se quiere crear.
+    dispatch(
+      addTask({
+        title: title.trim(),
+        description: description.trim(),
+        category,
+        date
+      })
+    )
     setTitle('')
     setDescription('')
     setCategory('personal')
