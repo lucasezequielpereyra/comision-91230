@@ -2,7 +2,7 @@ import { StatusBar } from 'expo-status-bar'
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context'
 import { Provider } from 'react-redux'
 import { store } from './src/store'
-import TabNavigator from './src/navigation/TabNavigator'
+import RootNavigator from './src/navigation/RootNavigator'
 import { StyleSheet } from 'react-native'
 
 export default function App() {
@@ -11,7 +11,7 @@ export default function App() {
       <SafeAreaProvider>
         <StatusBar style="dark" />
         <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
-          <TabNavigator />
+          <RootNavigator />
         </SafeAreaView>
       </SafeAreaProvider>
     </Provider>

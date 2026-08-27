@@ -1,9 +1,10 @@
 import React from 'react'
-import { Image, StyleSheet, Text, View } from 'react-native'
+import { Image, StyleSheet, Text, View, TouchableOpacity } from 'react-native'
 import { colors, radius, shadow, spacing, screenStyles } from '../../theme'
 import { useAppSelector } from '../../store/hooks'
 import { FILTERS, selectFilter, selectTaskStats } from '../../features/tasks/tasksSlice'
 import { name } from '../../data'
+import { logout } from '../../services/auth/authService'
 
 const avatar = require('../../assets/avatar.webp')
 
@@ -14,6 +15,17 @@ const ProfileScreen = () => {
   const { total, completed, pending } = useAppSelector(selectTaskStats)
   const filter = useAppSelector(selectFilter)
   const progress = total === 0 ? 0 : Math.round((completed / total) * 100)
+
+  const handleLogout = async () => {
+    try {
+      await logout()
+    } catch (error) {
+      console.error(
+        'Error al cerrar sesión:',
+        error
+      )
+    }
+  }
 
   return (
     <View style={screenStyles.container}>
@@ -51,6 +63,14 @@ const ProfileScreen = () => {
           Filtro activo en la lista: <Text style={styles.filterValue}>{FILTERS[filter]}</Text>
         </Text>
       </View>
+      <TouchableOpacity
+        style={styles.logoutButton}
+        onPress={handleLogout}
+      >
+        <Text style={styles.logoutText}>
+          Cerrar sesión
+        </Text>
+      </TouchableOpacity>
     </View>
   )
 }
@@ -152,5 +172,18 @@ const styles = StyleSheet.create({
   filterValue: {
     fontWeight: '800',
     color: colors.ink
-  }
+  },
+  logoutButton: {
+    marginTop: spacing.xl,
+    paddingVertical: spacing.md,
+    borderRadius: radius.md,
+    backgroundColor: colors.dangerSoft,
+    alignItems: 'center',
+  },
+
+  logoutText: {
+    color: colors.danger,
+    fontWeight: '800',
+    fontSize: 15,
+  },
 })

@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+
 import {
   KeyboardAvoidingView,
   Modal,
@@ -10,54 +11,111 @@ import {
   TouchableOpacity,
   View
 } from 'react-native'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { CATEGORIES, Category, DueDate, DUE_DATES } from '../types'
-import { colors, radius, shadow, spacing } from '../theme'
-import { useAppDispatch } from '../store/hooks'
-import { addTask } from '../features/tasks/tasksSlice'
 
-const CATEGORY_KEYS = Object.keys(CATEGORIES) as Category[]
-const DATE_KEYS = Object.keys(DUE_DATES) as DueDate[]
+import {
+  useSafeAreaInsets
+} from 'react-native-safe-area-context'
+
+import {
+  CATEGORIES,
+  Category,
+  DueDate,
+  DUE_DATES
+} from '../types'
+
+import {
+  colors,
+  radius,
+  shadow,
+  spacing
+} from '../theme'
+
+import { useAppSelector } from '../store/hooks'
+
+import {
+  selectCurrentUser
+} from '../features/auth/authSlice'
+
+import {
+  createTask
+} from '../services/tasks/tasksService'
+
+const CATEGORY_KEYS =
+  Object.keys(CATEGORIES) as Category[]
+
+const DATE_KEYS =
+  Object.keys(DUE_DATES) as DueDate[]
 
 export default function TaskForm() {
   const insets = useSafeAreaInsets()
-  const dispatch = useAppDispatch()
+
+  const user = useAppSelector(
+    selectCurrentUser
+  )
+
   const [open, setOpen] = useState(false)
 
   const [title, setTitle] = useState('')
-  const [description, setDescription] = useState('')
-  const [category, setCategory] = useState<Category>('personal')
-  const [date, setDate] = useState<DueDate>('today')
+  const [description, setDescription] =
+    useState('')
 
-  const canSubmit = title.trim().length > 0 && description.trim().length > 0
+  const [category, setCategory] =
+    useState<Category>('personal')
+
+  const [date, setDate] =
+    useState<DueDate>('today')
+
+  const canSubmit =
+    title.trim().length > 0 &&
+    description.trim().length > 0
+
   const close = () => setOpen(false)
 
-  const handleSubmit = () => {
-    if (!canSubmit) return
-    // El id y el completed los pone la acción (prepare + nanoid):
-    // el formulario solo describe QUÉ tarea se quiere crear.
-    dispatch(
-      addTask({
-        title: title.trim(),
-        description: description.trim(),
-        category,
-        date
-      })
-    )
-    setTitle('')
-    setDescription('')
-    setCategory('personal')
-    setDate('today')
-    close()
+  const handleSubmit = async () => {
+    if (!canSubmit || !user) return
+
+    try {
+      await createTask(
+        {
+          title: title.trim(),
+          description: description.trim(),
+          category,
+          date,
+          completed: false
+        },
+        user.uid
+      )
+
+      setTitle('')
+      setDescription('')
+      setCategory('personal')
+      setDate('today')
+
+      close()
+    } catch (error) {
+      console.error(
+        'Error al crear tarea:',
+        error
+      )
+    }
   }
 
   return (
-
     <>
-      <TouchableOpacity style={styles.fabRow} onPress={() => setOpen(true)} activeOpacity={0.8}>
-        <Text style={styles.fabPlus}>＋</Text>
-        <Text style={styles.fabText}>Nueva tarea</Text>
+      <TouchableOpacity
+        style={styles.fabRow}
+        onPress={() => setOpen(true)}
+        activeOpacity={0.8}
+      >
+        <Text style={styles.fabPlus}>
+          ＋
+        </Text>
+
+        <Text style={styles.fabText}>
+          Nueva tarea
+        </Text>
       </TouchableOpacity>
+
       <Modal
         visible={open}
         transparent
@@ -66,88 +124,169 @@ export default function TaskForm() {
       >
         <KeyboardAvoidingView
           style={styles.overlay}
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          behavior={
+            Platform.OS === 'ios'
+              ? 'padding'
+              : undefined
+          }
         >
-          <Pressable style={styles.backdrop} onPress={close} />
-          <View style={[styles.sheet, { paddingBottom: spacing.lg + insets.bottom }]}>
+          <Pressable
+            style={styles.backdrop}
+            onPress={close}
+          />
+
+          <View
+            style={[
+              styles.sheet,
+              {
+                paddingBottom:
+                  spacing.lg + insets.bottom
+              }
+            ]}
+          >
             <View style={styles.grabber} />
 
             <View style={styles.headerRow}>
-              <Text style={styles.heading}>Nueva tarea</Text>
-              <TouchableOpacity onPress={close} hitSlop={8}>
-                <Text style={styles.close}>✕</Text>
+              <Text style={styles.heading}>
+                Nueva tarea
+              </Text>
+
+              <TouchableOpacity
+                onPress={close}
+                hitSlop={8}
+              >
+                <Text style={styles.close}>
+                  ✕
+                </Text>
               </TouchableOpacity>
             </View>
 
             <TextInput
               style={styles.input}
               placeholder="¿Qué hay que hacer?"
-              placeholderTextColor={colors.muted}
+              placeholderTextColor={
+                colors.muted
+              }
               value={title}
               onChangeText={setTitle}
               autoFocus
               returnKeyType="next"
             />
+
             <TextInput
-              style={[styles.input, styles.textarea]}
+              style={[
+                styles.input,
+                styles.textarea
+              ]}
               placeholder="Descripción de la tarea"
-              placeholderTextColor={colors.muted}
+              placeholderTextColor={
+                colors.muted
+              }
               value={description}
               onChangeText={setDescription}
               multiline
             />
-            <Text style={styles.label}>Categoría</Text>
+
+            <Text style={styles.label}>
+              Categoría
+            </Text>
+
             <View style={styles.chipRow}>
               {CATEGORY_KEYS.map((key) => {
-                const cat = CATEGORIES[key]
-                const active = category === key
+                const cat =
+                  CATEGORIES[key]
+
+                const active =
+                  category === key
 
                 return (
                   <TouchableOpacity
-                    key={key} 
+                    key={key}
                     style={[
                       styles.chip,
-                      { borderColor: cat.color },
-                      active && { backgroundColor: cat.color }
+                      {
+                        borderColor:
+                          cat.color
+                      },
+                      active && {
+                        backgroundColor:
+                          cat.color
+                      }
                     ]}
-                    onPress={() => setCategory(key)}
+                    onPress={() =>
+                      setCategory(key)
+                    }
                   >
                     <Text
                       style={[
                         styles.chipText,
-                        { color: active ? colors.surface : cat.color }
+                        {
+                          color: active
+                            ? colors.surface
+                            : cat.color
+                        }
                       ]}
                     >
-                      {cat.emoji} {cat.label}
+                      {cat.emoji}{' '}
+                      {cat.label}
                     </Text>
                   </TouchableOpacity>
                 )
               })}
             </View>
-            <Text style={styles.label}>¿Para cuándo?</Text>
+
+            <Text style={styles.label}>
+              ¿Para cuándo?
+            </Text>
+
             <View style={styles.chipRow}>
               {DATE_KEYS.map((key) => {
-                const active = date === key
+                const active =
+                  date === key
+
                 return (
                   <TouchableOpacity
                     key={key}
-                    style={[styles.chip, styles.chipNeutral, active && styles.chipNeutralActive]}
-                    onPress={() => setDate(key)}
+                    style={[
+                      styles.chip,
+                      styles.chipNeutral,
+                      active &&
+                        styles.chipNeutralActive
+                    ]}
+                    onPress={() =>
+                      setDate(key)
+                    }
                   >
-                    <Text style={[styles.chipText, { color: active ? colors.surface : colors.ink }]}>
+                    <Text
+                      style={[
+                        styles.chipText,
+                        {
+                          color: active
+                            ? colors.surface
+                            : colors.ink
+                        }
+                      ]}
+                    >
                       {DUE_DATES[key]}
                     </Text>
                   </TouchableOpacity>
                 )
               })}
             </View>
+
             <TouchableOpacity
-              style={[styles.submit, !canSubmit && styles.submitDisabled]}
+              style={[
+                styles.submit,
+                !canSubmit &&
+                  styles.submitDisabled
+              ]}
               onPress={handleSubmit}
               disabled={!canSubmit}
               activeOpacity={0.85}
             >
-              <Text style={styles.submitText}>Agregar tarea</Text>
+              <Text style={styles.submitText}>
+                Agregar tarea
+              </Text>
             </TouchableOpacity>
           </View>
         </KeyboardAvoidingView>
@@ -167,11 +306,13 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md + 2,
     boxShadow: shadow.raised
   },
+
   fabPlus: {
     color: colors.surface,
     fontSize: 18,
     fontWeight: '800'
   },
+
   fabText: {
     color: colors.surface,
     fontSize: 15,
@@ -179,21 +320,28 @@ const styles = StyleSheet.create({
   },
 
   overlay: {
-    flex: 1, 
+    flex: 1,
     justifyContent: 'flex-end'
   },
+
   backdrop: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(42, 16, 8, 0.45)'
+    backgroundColor:
+      'rgba(42, 16, 8, 0.45)'
   },
+
   sheet: {
     backgroundColor: colors.surface,
-    borderTopLeftRadius: radius.lg + 8,
-    borderTopRightRadius: radius.lg + 8,
+    borderTopLeftRadius:
+      radius.lg + 8,
+    borderTopRightRadius:
+      radius.lg + 8,
     padding: spacing.lg,
     gap: spacing.sm,
-    boxShadow: '0px -6px 24px rgba(42, 16, 8, 0.18)'
+    boxShadow:
+      '0px -6px 24px rgba(42, 16, 8, 0.18)'
   },
+
   grabber: {
     alignSelf: 'center',
     width: 40,
@@ -202,16 +350,19 @@ const styles = StyleSheet.create({
     backgroundColor: colors.border,
     marginBottom: spacing.xs
   },
+
   headerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center'
   },
+
   heading: {
     fontSize: 16,
     fontWeight: '800',
     color: colors.ink
   },
+
   close: {
     fontSize: 16,
     color: colors.muted,
@@ -228,10 +379,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.ink
   },
+
   textarea: {
     minHeight: 64,
     textAlignVertical: 'top'
   },
+
   label: {
     fontSize: 12,
     fontWeight: '800',
@@ -246,24 +399,29 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: spacing.sm
   },
+
   chip: {
     borderWidth: 1.5,
     borderRadius: radius.pill,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.xs + 2
   },
+
   chipNeutral: {
     borderColor: colors.border,
     backgroundColor: colors.canvas
   },
+
   chipNeutralActive: {
     backgroundColor: colors.dark,
     borderColor: colors.dark
   },
+
   chipText: {
     fontSize: 13,
     fontWeight: '700'
   },
+
   submit: {
     backgroundColor: colors.primary,
     borderRadius: radius.md,
@@ -271,9 +429,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: spacing.sm
   },
+
   submitDisabled: {
     opacity: 0.4
   },
+
   submitText: {
     color: colors.surface,
     fontSize: 15,

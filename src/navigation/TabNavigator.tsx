@@ -1,5 +1,4 @@
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import { NavigationContainer } from "@react-navigation/native";
 import ProfileStack from "./ProfileStack";
 import TaskStack from "./TaskStack";
 import Ionicons from "@react-native-vector-icons/ionicons";
@@ -10,7 +9,6 @@ const Tab = createBottomTabNavigator<TabParamList>();
 
 const TabNavigator = () => {
     return (
-        <NavigationContainer>
             <Tab.Navigator
                 screenOptions={{
                     headerShown: false,
@@ -42,7 +40,6 @@ const TabNavigator = () => {
                     }}
                 />
             </Tab.Navigator>
-        </NavigationContainer>    
     )
 }
 

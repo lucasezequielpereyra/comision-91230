@@ -1,0 +1,726 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Autenticación y persistencia con Firebase · TaskFlow</title>
+<style>
+  :root {
+    --canvas:#F6F1E7; --surface:#FFFFFF; --ink:#211710; --muted:#7A6E60;
+    --border:#E3D9C9; --primary:#FF5A2D; --primary-soft:#FFE9E1; --dark:#2A1008;
+    --ok:#1F8A5B; --ok-soft:#E1F3EA; --bad:#C93A3A; --bad-soft:#FBE7E7;
+    --info:#4A6CF0; --info-soft:#E8ECFE; --code-bg:#FBF7F1;
+    --firebase:#F5A623; --firebase-soft:#FFF3D5; --shadow:0 2px 10px rgba(42,16,8,.07);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --canvas:#171310; --surface:#211B16; --ink:#F2EBE2; --muted:#A2988B;
+      --border:#3A2F26; --primary:#FF7A50; --primary-soft:#3B1E13; --dark:#F2EBE2;
+      --ok:#4FC08D; --ok-soft:#15301F; --bad:#F0736F; --bad-soft:#331819;
+      --info:#8AA0FF; --info-soft:#1B2140; --code-bg:#1A1511;
+      --firebase:#FFC247; --firebase-soft:#3A2A0E; --shadow:0 2px 10px rgba(0,0,0,.35);
+    }
+  }
+  * { box-sizing:border-box; }
+  html { scroll-behavior:smooth; }
+  body {
+    margin:0; background:var(--canvas); color:var(--ink);
+    font-family:"Plus Jakarta Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
+    font-size:16px; line-height:1.65;
+  }
+  .wrap { max-width:960px; margin:0 auto; padding:0 24px 96px; }
+
+  header.hero { background:var(--dark); color:var(--canvas); padding:64px 24px 56px; margin-bottom:48px; }
+  @media (prefers-color-scheme: dark) { header.hero { background:#0D0A08; color:#F2EBE2; } }
+  .hero-inner { max-width:960px; margin:0 auto; }
+  .kicker { color:var(--firebase); font-weight:700; letter-spacing:3px; text-transform:uppercase; font-size:13px; }
+  .hero h1 { font-size:clamp(32px,6vw,52px); line-height:1.08; margin:16px 0 0; font-weight:800; letter-spacing:-1px; }
+  .hero h1 em { font-style:normal; color:var(--firebase); }
+  .hero p { max-width:690px; margin:20px 0 0; opacity:.85; font-size:17px; }
+  .hero nav { margin-top:32px; display:flex; flex-wrap:wrap; gap:8px; }
+  .hero nav a { color:inherit; text-decoration:none; border:1px solid rgba(255,255,255,.22); border-radius:999px; padding:6px 16px; font-size:13.5px; font-weight:600; transition:.15s; }
+  .hero nav a:hover { background:var(--primary); border-color:var(--primary); color:#fff; }
+
+  section { margin-bottom:72px; scroll-margin-top:24px; }
+  .sec-num { display:inline-block; background:var(--primary); color:#fff; font-weight:800; font-size:12px; letter-spacing:1px; padding:4px 12px; border-radius:999px; text-transform:uppercase; }
+  h2 { font-size:clamp(24px,4vw,32px); font-weight:800; margin:14px 0 6px; letter-spacing:-.5px; line-height:1.2; }
+  h3 { font-size:19px; font-weight:800; margin:36px 0 10px; }
+  h4 { font-size:15px; font-weight:800; margin:24px 0 8px; color:var(--primary); }
+  .lede { color:var(--muted); font-size:17px; margin:0 0 24px; }
+  p { margin:0 0 16px; }
+  ul,ol { margin:0 0 16px; padding-left:22px; }
+  li { margin-bottom:8px; }
+  hr { border:none; border-top:1px solid var(--border); margin:56px 0; }
+
+  code, pre, .t-mono, .m-value { font-variant-ligatures:none; -webkit-font-variant-ligatures:none; }
+  code { font-family:"SF Mono","JetBrains Mono",Menlo,Consolas,monospace; font-size:.88em; background:var(--code-bg); border:1px solid var(--border); border-radius:4px; padding:1px 5px; color:var(--primary); }
+  pre { font-family:"SF Mono","JetBrains Mono",Menlo,Consolas,monospace; background:var(--code-bg); border:1px solid var(--border); border-left:3px solid var(--primary); border-radius:8px; padding:16px 18px; font-size:13.5px; line-height:1.6; overflow-x:auto; margin:0 0 20px; }
+  pre code { background:none; border:none; padding:0; color:inherit; font-size:inherit; }
+  pre .c { color:var(--muted); font-style:italic; }
+  pre .bad-line { color:var(--bad); font-weight:700; }
+  pre .ok-line { color:var(--ok); font-weight:700; }
+
+  figure { margin:28px 0 32px; }
+  figure svg { width:100%; height:auto; display:block; background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:12px; box-shadow:var(--shadow); }
+  figcaption { margin-top:12px; font-size:14px; color:var(--muted); line-height:1.55; }
+  figcaption b { color:var(--ink); }
+
+  .d-box { fill:var(--surface); stroke:currentColor; stroke-width:1.5; }
+  .d-box-soft { fill:var(--primary-soft); stroke:var(--primary); stroke-width:1.5; }
+  .d-firebase { fill:var(--firebase-soft); stroke:var(--firebase); stroke-width:1.5; }
+  .d-ok { fill:var(--ok-soft); stroke:var(--ok); stroke-width:1.5; }
+  .d-bad { fill:var(--bad-soft); stroke:var(--bad); stroke-width:1.5; }
+  .d-info { fill:var(--info-soft); stroke:var(--info); stroke-width:1.5; }
+  .d-ghost { fill:none; stroke:currentColor; stroke-width:1.2; stroke-dasharray:4 4; opacity:.45; }
+  .d-line { stroke:currentColor; stroke-width:1.6; fill:none; }
+  .d-line-ok { stroke:var(--ok); stroke-width:1.8; fill:none; }
+  .d-line-bad { stroke:var(--bad); stroke-width:1.8; fill:none; }
+  .d-divider { stroke:currentColor; stroke-width:1.2; stroke-dasharray:6 5; opacity:.4; }
+  .t { fill:currentColor; font-size:13px; font-family:inherit; }
+  .t-sm { fill:currentColor; font-size:11.5px; font-family:inherit; opacity:.75; }
+  .t-b { fill:currentColor; font-size:13.5px; font-weight:700; font-family:inherit; }
+  .t-head { fill:currentColor; font-size:12px; font-weight:800; font-family:inherit; letter-spacing:1px; opacity:.6; }
+  .t-mono { fill:currentColor; font-size:11.5px; font-family:"SF Mono",Menlo,monospace; }
+  .t-ok { fill:var(--ok); font-size:12.5px; font-weight:700; font-family:inherit; }
+  .t-bad { fill:var(--bad); font-size:12.5px; font-weight:700; font-family:inherit; }
+  .t-primary { fill:var(--primary); font-size:12.5px; font-weight:700; font-family:inherit; }
+  .t-firebase { fill:var(--firebase); font-size:12.5px; font-weight:800; font-family:inherit; }
+
+  .box { border:1px solid var(--border); border-radius:10px; padding:18px 20px; margin:0 0 20px; background:var(--surface); box-shadow:var(--shadow); }
+  .box .box-t { font-weight:800; font-size:15px; margin-bottom:8px; }
+  .box p:last-child, .box ul:last-child { margin-bottom:0; }
+  .box.key { border-left:4px solid var(--primary); }
+  .box.key .box-t { color:var(--primary); }
+  .box.warn { border-left:4px solid var(--bad); }
+  .box.warn .box-t { color:var(--bad); }
+  .box.good { border-left:4px solid var(--ok); }
+  .box.good .box-t { color:var(--ok); }
+  .box.firebase { border-left:4px solid var(--firebase); }
+  .box.firebase .box-t { color:var(--firebase); }
+
+  .cols { display:grid; grid-template-columns:1fr 1fr; gap:18px; margin-bottom:20px; }
+  .cols.three { grid-template-columns:repeat(3,1fr); }
+  @media (max-width:720px) { .cols, .cols.three { grid-template-columns:1fr; } }
+
+  table { width:100%; border-collapse:collapse; font-size:14.5px; margin:0 0 20px; background:var(--surface); border-radius:10px; overflow:hidden; box-shadow:var(--shadow); }
+  th { background:var(--dark); color:var(--canvas); text-align:left; padding:11px 14px; font-size:12px; text-transform:uppercase; letter-spacing:.6px; }
+  @media (prefers-color-scheme: dark) { th { background:#0D0A08; color:#F2EBE2; } }
+  td { padding:11px 14px; border-bottom:1px solid var(--border); vertical-align:top; }
+  tr:last-child td { border-bottom:none; }
+
+  .demo { border:2px solid var(--firebase); border-radius:12px; background:var(--surface); padding:20px; margin:28px 0; box-shadow:var(--shadow); }
+  .demo-head { display:flex; align-items:center; gap:10px; margin-bottom:6px; }
+  .demo-tag { background:var(--firebase); color:#2A1008; font-size:11px; font-weight:800; letter-spacing:1px; text-transform:uppercase; padding:3px 10px; border-radius:999px; }
+  .demo-head h3 { margin:0; font-size:17px; }
+  .demo-sub { color:var(--muted); font-size:14px; margin:0 0 18px; }
+  .controls { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:16px; }
+  button { font:inherit; font-size:14px; font-weight:700; cursor:pointer; background:var(--dark); color:var(--canvas); border:none; border-radius:8px; padding:9px 16px; transition:.15s; }
+  @media (prefers-color-scheme: dark) { button { background:var(--primary); color:#1A1108; } }
+  button:hover { opacity:.85; }
+  button.ghost { background:transparent; color:var(--ink); border:1.5px solid var(--border); }
+  button.ghost:hover { border-color:var(--primary); color:var(--primary); }
+  .seg { display:inline-flex; background:var(--code-bg); border:1.5px solid var(--border); border-radius:999px; padding:3px; gap:3px; }
+  .seg button { background:transparent; color:var(--muted); border-radius:999px; padding:6px 16px; font-size:13.5px; }
+  .seg button[aria-pressed="true"] { background:var(--primary); color:#fff; }
+
+  .phone { max-width:360px; margin:18px auto 6px; border:2px solid var(--border); background:var(--code-bg); border-radius:24px; padding:12px; box-shadow:var(--shadow); }
+  .phone-bar { width:90px; height:5px; border-radius:999px; background:var(--border); margin:2px auto 12px; }
+  .screen { min-height:250px; background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:18px; display:flex; flex-direction:column; justify-content:center; }
+  .screen h4 { margin:0 0 6px; color:var(--ink); font-size:20px; }
+  .screen p { color:var(--muted); font-size:14px; }
+  .fake-field { border:1px solid var(--border); border-radius:8px; padding:9px 10px; color:var(--muted); font-size:13px; margin-bottom:8px; }
+  .fake-task { border:1px solid var(--border); border-radius:8px; padding:10px; margin-bottom:8px; font-size:13px; font-weight:700; }
+
+  .metric-row { display:flex; flex-wrap:wrap; gap:12px; margin-bottom:14px; }
+  .metric { flex:1; min-width:150px; border:1.5px solid var(--border); border-radius:10px; padding:12px 14px; background:var(--code-bg); }
+  .metric .m-label { font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.6px; color:var(--muted); }
+  .metric .m-value { font-size:24px; font-weight:800; line-height:1.2; margin-top:2px; font-family:"SF Mono",Menlo,monospace; }
+  .metric.is-ok { border-color:var(--ok); background:var(--ok-soft); }
+  .metric.is-ok .m-value { color:var(--ok); }
+  .metric.is-bad { border-color:var(--bad); background:var(--bad-soft); }
+  .metric.is-bad .m-value { color:var(--bad); }
+
+  .log { background:var(--code-bg); border:1px solid var(--border); border-radius:10px; padding:12px; min-height:110px; font-family:"SF Mono",Menlo,monospace; font-size:12.5px; color:var(--muted); }
+  .log div { margin-bottom:5px; }
+  .log .ok { color:var(--ok); }
+  .log .bad { color:var(--bad); }
+  .log .info { color:var(--info); }
+
+  .check-list { list-style:none; padding-left:0; }
+  .check-list li { padding-left:28px; position:relative; margin-bottom:10px; }
+  .check-list li::before { content:"✓"; position:absolute; left:0; top:0; color:var(--ok); font-weight:800; font-size:16px; }
+  .x-list { list-style:none; padding-left:0; }
+  .x-list li { padding-left:28px; position:relative; margin-bottom:10px; }
+  .x-list li::before { content:"✕"; position:absolute; left:0; top:0; color:var(--bad); font-weight:800; font-size:15px; }
+  .step { display:grid; grid-template-columns:42px 1fr; gap:12px; margin-bottom:18px; align-items:start; }
+  .step-n { width:38px; height:38px; border-radius:50%; background:var(--primary); color:#fff; display:grid; place-items:center; font-weight:800; }
+  .step h4 { margin:2px 0 4px; color:var(--ink); font-size:15px; }
+  .step p { margin:0; color:var(--muted); }
+
+  footer { border-top:1px solid var(--border); padding-top:24px; color:var(--muted); font-size:14px; }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="hero-inner">
+    <div class="kicker">TaskFlow · Firebase + Firestore</div>
+    <h1>Autenticación y <em>persistencia</em><br>en React Native con Expo</h1>
+    <p>
+      Del usuario anónimo a una app multiusuario: registro, inicio de sesión, restauración de la sesión,
+      navegación protegida y tareas persistidas en Firestore con sincronización en tiempo real.
+    </p>
+    <nav>
+      <a href="#auth-flow">1 · Auth Flow</a>
+      <a href="#session">2 · Persistencia</a>
+      <a href="#firestore">3 · Firestore</a>
+      <a href="#crud">4 · CRUD</a>
+      <a href="#redux">5 · Redux</a>
+      <a href="#security">6 · Seguridad</a>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap">
+
+<section id="auth-flow">
+  <span class="sec-num">Sección 1</span>
+  <h2>El flujo de autenticación: dos árboles, una sola app</h2>
+  <p class="lede">
+    En React Native no protegemos una URL: decidimos qué árbol de navegación existe según el estado de la sesión.
+  </p>
+
+  <p>
+    En una aplicación web es común pensar en una ruta privada envuelta por un componente como
+    <code>&lt;ProtectedRoute&gt;</code>. En TaskFlow móvil vamos a resolver el problema de otra manera:
+    <b>renderizando condicionalmente el árbol de navegación</b>.
+  </p>
+  <p>
+    Si Redux conoce un usuario autenticado, mostramos el flujo privado de la aplicación. Si no hay usuario,
+    mostramos el flujo público de Login y Registro. La consecuencia es importante: una pantalla privada no
+    queda simplemente "bloqueada"; directamente <b>no forma parte del árbol actual</b>.
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 900 430" role="img" aria-label="Flujo condicional de autenticación en TaskFlow. Firebase informa el estado de autenticación, Redux guarda el usuario y el navegador principal decide entre AuthStack y MainStack.">
+      <defs>
+        <marker id="a1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="currentColor"/></marker>
+        <marker id="aok" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--ok)"/></marker>
+        <marker id="abad" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--bad)"/></marker>
+      </defs>
+
+      <text class="t-head" x="24" y="26">La identidad del usuario decide qué navegación se monta</text>
+
+      <rect class="d-firebase" x="300" y="54" width="300" height="72" rx="10"/>
+      <text class="t-b" x="450" y="80" text-anchor="middle">Firebase Authentication</text>
+      <text class="t-mono" x="450" y="102" text-anchor="middle">onAuthStateChanged(auth, user =&gt; ...)</text>
+
+      <line class="d-line" x1="450" y1="128" x2="450" y2="168" marker-end="url(#a1)"/>
+
+      <rect class="d-info" x="310" y="174" width="280" height="72" rx="10"/>
+      <text class="t-b" x="450" y="200" text-anchor="middle">Redux · authSlice</text>
+      <text class="t-mono" x="450" y="222" text-anchor="middle">user · token · isLoading</text>
+
+      <line class="d-line" x1="450" y1="248" x2="450" y2="286" marker-end="url(#a1)"/>
+      <text class="t-sm" x="466" y="273">¿hay usuario?</text>
+
+      <rect class="d-box" x="340" y="292" width="220" height="54" rx="10"/>
+      <text class="t-b" x="450" y="324" text-anchor="middle">AppNavigator</text>
+
+      <path class="d-line-bad" d="M340 320 C250 320 220 350 180 374" marker-end="url(#abad)"/>
+      <path class="d-line-ok" d="M560 320 C650 320 680 350 720 374" marker-end="url(#aok)"/>
+      <text class="t-bad" x="260" y="344">NO</text>
+      <text class="t-ok" x="640" y="344">SÍ</text>
+
+      <rect class="d-bad" x="38" y="360" width="270" height="52" rx="9"/>
+      <text class="t-b" x="173" y="382" text-anchor="middle">AuthStack</text>
+      <text class="t-sm" x="173" y="401" text-anchor="middle">Login · Register</text>
+
+      <rect class="d-ok" x="592" y="360" width="270" height="52" rx="9"/>
+      <text class="t-b" x="727" y="382" text-anchor="middle">MainStack / Tabs</text>
+      <text class="t-sm" x="727" y="401" text-anchor="middle">Home · TaskDetail · Profile</text>
+    </svg>
+    <figcaption>
+      <b>La protección está en la composición del árbol.</b> Cuando <code>user === null</code>, las pantallas
+      privadas no están montadas. Cuando Firebase informa una sesión válida, Redux se actualiza y React
+      reemplaza el árbol público por el privado.
+    </figcaption>
+  </figure>
+
+  <pre><code>export default function AppNavigator() {
+  const user = useAppSelector(state =&gt; state.auth.user)
+  const isLoading = useAppSelector(state =&gt; state.auth.isLoading)
+
+  if (isLoading) {
+    return &lt;SplashScreen /&gt;
+  }
+
+  return (
+    &lt;NavigationContainer&gt;
+      {user ? &lt;MainNavigator /&gt; : &lt;AuthNavigator /&gt;}
+    &lt;/NavigationContainer&gt;
+  )
+}</code></pre>
+
+  <div class="demo">
+    <div class="demo-head"><span class="demo-tag">Demo en vivo</span><h3>Cambiá el estado de la sesión y mirá qué árbol existe</h3></div>
+    <p class="demo-sub">No simulamos "ocultar" una pantalla. Simulamos desmontar un árbol completo y montar el otro.</p>
+    <div class="controls">
+      <div class="seg" role="group" aria-label="Estado de autenticación">
+        <button id="auth-out" aria-pressed="true">Sin sesión</button>
+        <button id="auth-in" aria-pressed="false">Usuario autenticado</button>
+      </div>
+    </div>
+    <div class="phone">
+      <div class="phone-bar"></div>
+      <div class="screen" id="auth-screen"></div>
+    </div>
+    <p class="note" id="auth-note"></p>
+  </div>
+
+  <div class="box key">
+    <div class="box-t">La idea importante</div>
+    <p>La navegación protegida mejora la experiencia y evita caminos inválidos dentro de la app. La autorización real de los datos se resuelve en otro nivel: <b>las Security Rules de Firebase</b>.</p>
+  </div>
+</section>
+
+<hr>
+
+<section id="session">
+  <span class="sec-num">Sección 2</span>
+  <h2>Persistencia de sesión: abrir la app sin volver a loguearse</h2>
+  <p class="lede">La sesión de Firebase y el estado de Redux cumplen funciones distintas: Firebase conserva la identidad; Redux permite que la UI reaccione.</p>
+
+  <p>
+    El listener <code>onAuthStateChanged</code> es el puente entre Firebase Authentication y nuestra aplicación.
+    Cuando TaskFlow arranca, Firebase resuelve si existe una sesión activa y ejecuta el callback con un usuario
+    o con <code>null</code>. A partir de ahí sincronizamos el estado de Redux.
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 900 360" role="img" aria-label="Secuencia de restauración de sesión al abrir TaskFlow.">
+      <defs><marker id="a2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="currentColor"/></marker></defs>
+      <text class="t-head" x="24" y="26">Arranque de la aplicación</text>
+
+      <rect class="d-box" x="24" y="72" width="160" height="76" rx="9"/>
+      <text class="t-b" x="104" y="99" text-anchor="middle">1 · App abre</text>
+      <text class="t-sm" x="104" y="120" text-anchor="middle">Redux todavía</text>
+      <text class="t-mono" x="104" y="138" text-anchor="middle">isLoading = true</text>
+
+      <line class="d-line" x1="190" y1="110" x2="238" y2="110" marker-end="url(#a2)"/>
+
+      <rect class="d-firebase" x="244" y="72" width="190" height="76" rx="9"/>
+      <text class="t-b" x="339" y="99" text-anchor="middle">2 · Firebase resuelve</text>
+      <text class="t-sm" x="339" y="120" text-anchor="middle">estado de autenticación</text>
+      <text class="t-mono" x="339" y="138" text-anchor="middle">user | null</text>
+
+      <line class="d-line" x1="440" y1="110" x2="488" y2="110" marker-end="url(#a2)"/>
+
+      <rect class="d-info" x="494" y="72" width="170" height="76" rx="9"/>
+      <text class="t-b" x="579" y="99" text-anchor="middle">3 · Dispatch</text>
+      <text class="t-sm" x="579" y="120" text-anchor="middle">Redux recibe usuario</text>
+      <text class="t-mono" x="579" y="138" text-anchor="middle">setUser(user)</text>
+
+      <line class="d-line" x1="670" y1="110" x2="718" y2="110" marker-end="url(#a2)"/>
+
+      <rect class="d-ok" x="724" y="72" width="152" height="76" rx="9"/>
+      <text class="t-b" x="800" y="99" text-anchor="middle">4 · Navegación</text>
+      <text class="t-sm" x="800" y="120" text-anchor="middle">stack correcto</text>
+      <text class="t-mono" x="800" y="138" text-anchor="middle">isLoading = false</text>
+
+      <line class="d-divider" x1="24" y1="188" x2="876" y2="188"/>
+
+      <rect class="d-box-soft" x="100" y="222" width="300" height="90" rx="9"/>
+      <text class="t-b" x="250" y="249" text-anchor="middle">Sin isLoading</text>
+      <text class="t-sm" x="250" y="271" text-anchor="middle">La app puede mostrar Login por un instante</text>
+      <text class="t-bad" x="250" y="293" text-anchor="middle">parpadeo de navegación</text>
+
+      <rect class="d-ok" x="500" y="222" width="300" height="90" rx="9"/>
+      <text class="t-b" x="650" y="249" text-anchor="middle">Con isLoading</text>
+      <text class="t-sm" x="650" y="271" text-anchor="middle">Esperamos la primera respuesta del listener</text>
+      <text class="t-ok" x="650" y="293" text-anchor="middle">flujo visual consistente</text>
+    </svg>
+    <figcaption><b>El estado inicial también importa.</b> Antes de saber si hay usuario, no deberíamos asumir ni Login ni Home. Un estado de carga evita mostrar el árbol equivocado durante el arranque.</figcaption>
+  </figure>
+
+  <pre><code>useEffect(() =&gt; {
+  const unsubscribe = onAuthStateChanged(auth, (firebaseUser) =&gt; {
+    if (firebaseUser) {
+      dispatch(setUser({
+        uid: firebaseUser.uid,
+        email: firebaseUser.email,
+      }))
+    } else {
+      dispatch(clearUser())
+    }
+
+    dispatch(setAuthLoading(false))
+  })
+
+  return unsubscribe  <span class="c">// limpiar el listener al desmontar</span>
+}, [dispatch])</code></pre>
+
+  <div class="cols">
+    <div class="box firebase"><div class="box-t">Firebase Authentication</div><p>Es la fuente que nos informa si existe una sesión y quién es el usuario autenticado.</p></div>
+    <div class="box"><div class="box-t">Redux</div><p>Expone esa información al resto de la UI para que navegación, pantallas y servicios puedan reaccionar.</p></div>
+  </div>
+</section>
+
+<hr>
+
+<section id="firestore">
+  <span class="sec-num">Sección 3</span>
+  <h2>Firestore: de un array local a una fuente de datos compartida</h2>
+  <p class="lede">Redux sigue siendo útil para la interfaz, pero las tareas dejan de nacer y morir solamente en memoria.</p>
+
+  <p>
+    Hasta este punto, TaskFlow puede tener un array de tareas dentro del store. Eso funciona mientras el proceso de
+    la aplicación sigue vivo. En este checkpoint, la fuente persistente pasa a ser una colección de Firestore llamada
+    <code>tasks</code>.
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 900 430" role="img" aria-label="Arquitectura de TaskFlow con Firebase Auth, Redux y Firestore.">
+      <defs><marker id="a3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="currentColor"/></marker></defs>
+      <text class="t-head" x="24" y="26">Arquitectura de autenticación + datos</text>
+
+      <rect class="d-box" x="44" y="80" width="190" height="80" rx="10"/>
+      <text class="t-b" x="139" y="106" text-anchor="middle">Pantallas</text>
+      <text class="t-sm" x="139" y="128" text-anchor="middle">Login · Register</text>
+      <text class="t-sm" x="139" y="146" text-anchor="middle">Tasks · Detail</text>
+
+      <rect class="d-info" x="355" y="80" width="190" height="80" rx="10"/>
+      <text class="t-b" x="450" y="106" text-anchor="middle">Redux Store</text>
+      <text class="t-sm" x="450" y="128" text-anchor="middle">authSlice</text>
+      <text class="t-sm" x="450" y="146" text-anchor="middle">taskSlice</text>
+
+      <rect class="d-firebase" x="666" y="52" width="190" height="74" rx="10"/>
+      <text class="t-b" x="761" y="79" text-anchor="middle">Firebase Auth</text>
+      <text class="t-mono" x="761" y="101" text-anchor="middle">uid · email</text>
+
+      <rect class="d-firebase" x="666" y="164" width="190" height="92" rx="10"/>
+      <text class="t-b" x="761" y="191" text-anchor="middle">Cloud Firestore</text>
+      <text class="t-mono" x="761" y="213" text-anchor="middle">tasks/{documentId}</text>
+      <text class="t-mono" x="761" y="234" text-anchor="middle">userId · title · done</text>
+
+      <line class="d-line" x1="240" y1="120" x2="347" y2="120" marker-end="url(#a3)"/>
+      <text class="t-sm" x="294" y="108" text-anchor="middle">dispatch / selector</text>
+
+      <line class="d-line" x1="551" y1="110" x2="658" y2="92" marker-end="url(#a3)"/>
+      <text class="t-sm" x="606" y="80" text-anchor="middle">sesión</text>
+
+      <line class="d-line" x1="551" y1="142" x2="658" y2="196" marker-end="url(#a3)"/>
+      <text class="t-sm" x="606" y="181" text-anchor="middle">CRUD</text>
+
+      <path class="d-line-ok" d="M658 226 C580 288 318 288 240 160" marker-end="url(#a3)"/>
+      <text class="t-ok" x="450" y="290" text-anchor="middle">onSnapshot → cambios en tiempo real → dispatch(setTasks)</text>
+
+      <line class="d-divider" x1="24" y1="320" x2="876" y2="320"/>
+      <text class="t-head" x="24" y="350">Documento de ejemplo</text>
+      <rect class="d-box-soft" x="24" y="364" width="852" height="48" rx="8"/>
+      <text class="t-mono" x="42" y="393">{ id: "abc123", title: "Preparar clase", completed: false, userId: "uid_Pablo", createdAt: ... }</text>
+    </svg>
+    <figcaption>
+      <b>La nube y el store no compiten.</b> Firestore aporta persistencia y sincronización; Redux mantiene un
+      estado cómodo para que filtros, contadores, tarjetas y navegación reaccionen de forma inmediata.
+    </figcaption>
+  </figure>
+
+  <div class="cols three">
+    <div class="box firebase"><div class="box-t">Colección</div><p><code>tasks</code> agrupa todos los documentos de tareas.</p></div>
+    <div class="box"><div class="box-t">Documento</div><p>Cada tarea tiene su propio ID y sus campos.</p></div>
+    <div class="box good"><div class="box-t">Propietario</div><p><code>userId</code> relaciona cada tarea con el usuario autenticado.</p></div>
+  </div>
+
+  <h3>La consulta que separa los datos por usuario</h3>
+  <pre><code>const tasksQuery = query(
+  collection(db, 'tasks'),
+  where('userId', '==', currentUser.uid)
+)
+
+const unsubscribe = onSnapshot(tasksQuery, (snapshot) =&gt; {
+  const tasks = snapshot.docs.map(doc =&gt; ({
+    id: doc.id,
+    ...doc.data(),
+  }))
+
+  dispatch(setTasks(tasks))
+})</code></pre>
+
+  <div class="box warn">
+    <div class="box-t">Filtro no significa seguridad</div>
+    <p>El <code>where(...)</code> hace que la app pida las tareas correctas. Pero un cliente modificado podría intentar otra consulta. La separación real entre usuarios debe reforzarse con <b>Security Rules</b>.</p>
+  </div>
+</section>
+
+<hr>
+
+<section id="crud">
+  <span class="sec-num">Sección 4</span>
+  <h2>CRUD en Firestore: crear, leer, actualizar y borrar</h2>
+  <p class="lede">Cada interacción que antes cambiaba solo Redux ahora debe producir un cambio persistente.</p>
+
+  <table>
+    <tr><th>Acción en TaskFlow</th><th>Firestore</th><th>Idea clave</th></tr>
+    <tr><td><b>Crear tarea</b></td><td><code>addDoc()</code></td><td>Agregar <code>userId</code> del usuario activo.</td></tr>
+    <tr><td><b>Leer tareas</b></td><td><code>query()</code> + <code>where()</code></td><td>Pedir solamente las del usuario autenticado.</td></tr>
+    <tr><td><b>Escuchar cambios</b></td><td><code>onSnapshot()</code></td><td>Actualizar Redux cuando cambia la colección.</td></tr>
+    <tr><td><b>Completar / editar</b></td><td><code>updateDoc()</code></td><td>Modificar el documento persistido, no solo la UI.</td></tr>
+    <tr><td><b>Eliminar</b></td><td><code>deleteDoc()</code></td><td>Eliminar por ID de documento.</td></tr>
+  </table>
+
+  <h3>Crear</h3>
+  <pre><code>const createTask = async (taskData, userId) =&gt; {
+  return addDoc(collection(db, 'tasks'), {
+    ...taskData,
+    userId,
+    completed: false,
+    createdAt: serverTimestamp(),
+  })
+}</code></pre>
+
+  <h3>Actualizar</h3>
+  <pre><code>const toggleTask = async (task) =&gt; {
+  const taskRef = doc(db, 'tasks', task.id)
+
+  await updateDoc(taskRef, {
+    completed: !task.completed,
+  })
+}</code></pre>
+
+  <h3>Borrar</h3>
+  <pre><code>const removeTask = async (taskId) =&gt; {
+  const taskRef = doc(db, 'tasks', taskId)
+  await deleteDoc(taskRef)
+}</code></pre>
+
+  <div class="demo">
+    <div class="demo-head"><span class="demo-tag">Demo conceptual</span><h3>Una tarea cambia en la nube y todas las vistas se enteran</h3></div>
+    <p class="demo-sub">El botón simula un cambio recibido por <code>onSnapshot</code>. Mirá cómo la misma fuente actualiza Redux y la UI.</p>
+    <div class="controls">
+      <button id="cloud-change">Simular cambio en Firestore</button>
+      <button class="ghost" id="cloud-reset">Reiniciar</button>
+    </div>
+    <div class="metric-row">
+      <div class="metric is-ok"><div class="m-label">Firestore</div><div class="m-value" id="m-cloud">Pendiente</div></div>
+      <div class="metric"><div class="m-label">Redux</div><div class="m-value" id="m-redux">Pendiente</div></div>
+      <div class="metric"><div class="m-label">UI</div><div class="m-value" id="m-ui">Pendiente</div></div>
+    </div>
+    <div class="log" id="cloud-log"></div>
+  </div>
+
+  <div class="box firebase">
+    <div class="box-t"><code>serverTimestamp()</code></div>
+    <p>Para fechas creadas en la base, conviene usar el reloj del servidor en lugar de depender de la hora configurada en el teléfono del usuario.</p>
+  </div>
+</section>
+
+<hr>
+
+<section id="redux">
+  <span class="sec-num">Sección 5</span>
+  <h2>Sincronización con Redux: quién es la fuente de verdad</h2>
+  <p class="lede">En este checkpoint, Redux representa el estado actual de la interfaz; Firestore conserva el estado persistente.</p>
+
+  <p>
+    La idea más limpia es evitar que una misma operación tenga dos historias independientes. Si hacemos un
+    <code>dispatch(addTask(...))</code> y además un <code>addDoc(...)</code> sin coordinación, corremos el riesgo
+    de que la UI muestre algo que Firestore rechazó o de que la nube cambie sin reflejarse localmente.
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 900 360" role="img" aria-label="Flujo recomendado: evento de UI, escritura en Firestore, snapshot y actualización del store Redux.">
+      <defs><marker id="a4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="currentColor"/></marker></defs>
+      <text class="t-head" x="24" y="26">Un solo circuito para evitar desincronización</text>
+
+      <rect class="d-box" x="24" y="82" width="160" height="72" rx="9"/>
+      <text class="t-b" x="104" y="108" text-anchor="middle">UI</text>
+      <text class="t-sm" x="104" y="130" text-anchor="middle">"Agregar tarea"</text>
+
+      <line class="d-line" x1="190" y1="118" x2="238" y2="118" marker-end="url(#a4)"/>
+
+      <rect class="d-box-soft" x="244" y="82" width="190" height="72" rx="9"/>
+      <text class="t-b" x="339" y="108" text-anchor="middle">Servicio / thunk</text>
+      <text class="t-mono" x="339" y="130" text-anchor="middle">addDoc(...)</text>
+
+      <line class="d-line" x1="440" y1="118" x2="488" y2="118" marker-end="url(#a4)"/>
+
+      <rect class="d-firebase" x="494" y="82" width="170" height="72" rx="9"/>
+      <text class="t-b" x="579" y="108" text-anchor="middle">Firestore</text>
+      <text class="t-sm" x="579" y="130" text-anchor="middle">persiste el documento</text>
+
+      <path class="d-line-ok" d="M664 154 C664 220 450 250 308 250" marker-end="url(#a4)"/>
+      <text class="t-ok" x="520" y="230">onSnapshot</text>
+
+      <rect class="d-info" x="140" y="222" width="160" height="72" rx="9"/>
+      <text class="t-b" x="220" y="248" text-anchor="middle">Redux</text>
+      <text class="t-mono" x="220" y="270" text-anchor="middle">setTasks(...)</text>
+
+      <path class="d-line" d="M140 258 C82 258 72 200 90 160" marker-end="url(#a4)"/>
+      <text class="t-sm" x="72" y="218" text-anchor="middle">render</text>
+
+      <rect class="d-ok" x="500" y="268" width="330" height="54" rx="9"/>
+      <text class="t-b" x="665" y="291" text-anchor="middle">Resultado</text>
+      <text class="t-sm" x="665" y="310" text-anchor="middle">UI, Redux y Firestore convergen al mismo dato</text>
+    </svg>
+    <figcaption><b>Patrón simple para enseñar:</b> escribir en Firestore y dejar que el listener vuelva a poblar Redux. También se puede usar <code>createAsyncThunk</code>, pero el principio es el mismo: coordinar la asincronía.</figcaption>
+  </figure>
+
+  <h3>Un <code>authSlice</code> mínimo</h3>
+  <pre><code>const initialState = {
+  user: null,
+  token: null,
+  isLoading: true,
+  error: null,
+}
+
+const authSlice = createSlice({
+  name: 'auth',
+  initialState,
+  reducers: {
+    setUser: (state, action) =&gt; {
+      state.user = action.payload
+    },
+    clearUser: (state) =&gt; {
+      state.user = null
+      state.token = null
+    },
+    setAuthLoading: (state, action) =&gt; {
+      state.isLoading = action.payload
+    },
+  },
+})</code></pre>
+
+  <div class="box key">
+    <div class="box-t">Redux Toolkit y "mutación"</div>
+    <p>En los reducers de Redux Toolkit podemos escribir <code>state.user = ...</code> porque internamente utiliza Immer. No contradice la inmutabilidad que vimos en React: Redux Toolkit genera el estado inmutable resultante por nosotros.</p>
+  </div>
+</section>
+
+<hr>
+
+<section id="security">
+  <span class="sec-num">Sección 6</span>
+  <h2>Errores comunes y seguridad real</h2>
+  <p class="lede">Una aplicación conectada agrega problemas que no existían cuando todo era un array local.</p>
+
+  <div class="box warn">
+    <div class="box-t">Error 1 · No limpiar listeners</div>
+    <p>Los listeners de <code>onAuthStateChanged</code> y <code>onSnapshot</code> permanecen activos hasta que los desconectamos. Si el componente se monta varias veces y nunca limpiamos, podemos terminar con callbacks duplicados y fugas de memoria.</p>
+    <pre style="margin:12px 0 0"><code>useEffect(() =&gt; {
+  const unsubscribe = onSnapshot(tasksQuery, handleSnapshot)
+  return unsubscribe
+}, [tasksQuery])</code></pre>
+  </div>
+
+  <div class="box warn">
+    <div class="box-t">Error 2 · Confiar solamente en la interfaz</div>
+    <p>Que el usuario no tenga una pantalla o un botón no significa que los datos estén seguros. La app cliente está en manos del usuario. Las <b>Security Rules</b> deben impedir que una cuenta acceda a documentos ajenos.</p>
+  </div>
+
+  <div class="box warn">
+    <div class="box-t">Error 3 · No manejar la asincronía</div>
+    <p>Login, registro y operaciones de Firestore devuelven Promises. Una app robusta debe representar <b>cargando, éxito y error</b>, en lugar de asumir que toda operación termina correctamente.</p>
+  </div>
+
+  <h3>Ejemplo conceptual de reglas por propietario</h3>
+  <pre><code>match /tasks/{taskId} {
+  allow read, update, delete: if request.auth != null
+    &amp;&amp; resource.data.userId == request.auth.uid;
+
+  allow create: if request.auth != null
+    &amp;&amp; request.resource.data.userId == request.auth.uid;
+}</code></pre>
+
+  <div class="cols">
+    <div class="box good"><div class="box-t">UX</div><ul class="check-list" style="margin-bottom:0"><li>Stacks condicionales</li><li>Mensajes de error</li><li>Estados de carga</li><li>Lista reactiva</li></ul></div>
+    <div class="box firebase"><div class="box-t">Seguridad</div><ul class="check-list" style="margin-bottom:0"><li>Usuario autenticado</li><li><code>userId</code> por documento</li><li>Security Rules</li><li>Acceso restringido por UID</li></ul></div>
+  </div>
+
+  <h3>Errores de autenticación visibles para el usuario</h3>
+  <pre><code>try {
+  await signInWithEmailAndPassword(auth, email, password)
+} catch (error) {
+  setError('No pudimos iniciar sesión. Revisá tus datos e intentá nuevamente.')
+}</code></pre>
+</section>
+
+
+
+<footer>
+  <p style="margin:0"><b>TaskFlow · Autenticación y Persistencia — Firebase Auth + Cloud Firestore</b><br>Material de apoyo para clase. Los diagramas y demos están embebidos en el archivo y funcionan sin dependencias externas.</p>
+</footer>
+
+</div>
+
+<script>
+/* Demo 1 · árbol de navegación condicional */
+(function () {
+  const screen = document.getElementById('auth-screen')
+  const note = document.getElementById('auth-note')
+  const out = document.getElementById('auth-out')
+  const inn = document.getElementById('auth-in')
+
+  function paint(isLogged) {
+    out.setAttribute('aria-pressed', String(!isLogged))
+    inn.setAttribute('aria-pressed', String(isLogged))
+
+    if (isLogged) {
+      screen.innerHTML = '<h4>TaskFlow</h4><p>MainStack / Bottom Tabs</p>' +
+        '<div class="fake-task">○ Preparar material Firebase</div>' +
+        '<div class="fake-task">✓ Revisar checkpoint</div>' +
+        '<div class="fake-task">○ Publicar repositorio</div>'
+      note.innerHTML = '<b>user != null.</b> React monta el árbol privado. Login y Register dejan de formar parte de la navegación actual.'
+    } else {
+      screen.innerHTML = '<h4>Iniciar sesión</h4><p>AuthStack</p>' +
+        '<div class="fake-field">correo@ejemplo.com</div>' +
+        '<div class="fake-field">••••••••</div>' +
+        '<button style="width:100%;margin-top:4px">Ingresar</button>'
+      note.innerHTML = '<b>user === null.</b> React monta AuthStack. Home y TaskDetail no están escondidos: directamente no existen en este árbol.'
+    }
+  }
+
+  out.addEventListener('click', () => paint(false))
+  inn.addEventListener('click', () => paint(true))
+  paint(false)
+})()
+
+/* Demo 2 · snapshot -> Redux -> UI */
+(function () {
+  const cloud = document.getElementById('m-cloud')
+  const redux = document.getElementById('m-redux')
+  const ui = document.getElementById('m-ui')
+  const log = document.getElementById('cloud-log')
+  const change = document.getElementById('cloud-change')
+  const reset = document.getElementById('cloud-reset')
+
+  function base() {
+    cloud.textContent = 'Pendiente'
+    redux.textContent = 'Pendiente'
+    ui.textContent = 'Pendiente'
+    log.innerHTML = '<div class="info">[estado inicial] task.completed = false</div>'
+  }
+
+  function run() {
+    cloud.textContent = 'Completada'
+    log.innerHTML += '<div class="ok">[Firestore] documento actualizado: completed = true</div>'
+
+    setTimeout(() => {
+      redux.textContent = 'Completada'
+      log.innerHTML += '<div class="info">[onSnapshot] llegó un nuevo snapshot</div><div class="info">[Redux] dispatch(setTasks(...))</div>'
+    }, 180)
+
+    setTimeout(() => {
+      ui.textContent = 'Completada'
+      log.innerHTML += '<div class="ok">[React] selector cambió → UI renderiza ✓</div>'
+    }, 360)
+  }
+
+  change.addEventListener('click', run)
+  reset.addEventListener('click', base)
+  base()
+})()
+</script>
+
+</body>
+</html>

@@ -18,3 +18,8 @@ export type TabParamList = {
   TasksStack: NavigatorScreenParams<TaskStackParamList>
   ProfileStack: NavigatorScreenParams<ProfileStackParamList>
 }
+
+export type AuthStackParamList = {
+  Login: undefined
+  Register: undefined
+}

@@ -21,7 +21,7 @@ type TasksState = {
 }
 
 const initialState: TasksState = {
-  items: SEED_TASKS,
+  items: [],
   filter: 'all'
 }
 
@@ -48,13 +48,16 @@ const tasksSlice = createSlice({
     deleteTask: (state, action: PayloadAction<string>) => {
       state.items = state.items.filter((t) => t.id !== action.payload)
     },
+    setTasks: (state, action: PayloadAction<Task[]>) => {
+      state.items = action.payload
+    },
     setFilter: (state, action: PayloadAction<TaskFilter>) => {
       state.filter = action.payload
     }
   }
 })
 
-export const { addTask, toggleTaskStatus, deleteTask, setFilter } = tasksSlice.actions
+export const { addTask, toggleTaskStatus, deleteTask, setTasks, setFilter } = tasksSlice.actions
 export default tasksSlice.reducer
 
 // ── Selectores ───────────────────────────────────────────────────────────
