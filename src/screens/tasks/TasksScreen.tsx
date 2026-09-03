@@ -1,5 +1,5 @@
 import { useCallback, useEffect } from 'react'
-import { View, Text, FlatList, StyleSheet } from 'react-native'
+import { View, Text, FlatList, Image, StyleSheet } from 'react-native'
 
 import { Task } from '../../types'
 import { spacing, colors, screenStyles } from '../../theme'
@@ -29,6 +29,8 @@ import {
 } from '../../services/tasks/tasksService'
 
 type Props = NativeStackScreenProps<TaskStackParamList, 'Tasks'>
+
+const fallbackAvatar = require('../../assets/avatar.webp')
 
 const keyExtractor = (item: Task) => item.id
 
@@ -100,12 +102,21 @@ const TasksScreen = ({ navigation }: Props) => {
   return (
     <View style={screenStyles.container}>
       <View style={styles.header}>
-        <View>
-          <Text style={styles.brand}>TaskFlow</Text>
+        <View style={styles.brandRow}>
+          <View>
+            <Text style={styles.brand}>TaskFlow</Text>
 
-          <Text style={styles.appSubtitle}>
-            Estado global con Redux Toolkit
-          </Text>
+            <Text style={styles.appSubtitle}>
+              {user?.email ?? 'Organizá tu día'}
+            </Text>
+          </View>
+
+          {/* La misma foto que se elige en Perfil: ambas pantallas
+              leen photoURL del authSlice, sin prop drilling. */}
+          <Image
+            source={user?.photoURL ? { uri: user.photoURL } : fallbackAvatar}
+            style={styles.headerAvatar}
+          />
         </View>
 
         <View style={styles.titleRow}>
@@ -155,6 +166,18 @@ const styles = StyleSheet.create({
 
   header: {
     gap: spacing.sm
+  },
+
+  brandRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between'
+  },
+
+  headerAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20
   },
 
   titleRow: {

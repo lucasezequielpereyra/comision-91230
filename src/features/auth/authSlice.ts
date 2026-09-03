@@ -4,6 +4,7 @@ export type AuthUser = {
   uid: string
   email: string | null
   displayName: string | null
+  photoURL: string | null
 }
 
 type AuthState = {
@@ -28,10 +29,19 @@ const authSlice = createSlice({
       state.user = action.payload
       state.isLoading = false
     },
+
+    setUserPhoto: (
+      state,
+      action: PayloadAction<string | null>
+    ) => {
+      if (state.user) {
+        state.user.photoURL = action.payload
+      }
+    },
   },
 })
 
-export const { setUser } = authSlice.actions
+export const { setUser, setUserPhoto } = authSlice.actions
 
 export const selectCurrentUser = (state: {
   auth: AuthState
@@ -40,5 +50,9 @@ export const selectCurrentUser = (state: {
 export const selectAuthLoading = (state: {
   auth: AuthState
 }) => state.auth.isLoading
+
+export const selectUserPhoto = (state: {
+  auth: AuthState
+}) => state.auth.user?.photoURL ?? null
 
 export default authSlice.reducer

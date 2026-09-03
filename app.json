@@ -25,6 +25,14 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "TaskFlow accede a tus fotos para que elijas tu imagen de perfil."
+        }
+      ]
+    ]
   }
 }
