@@ -1,0 +1,1127 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Perfil y avatar en TaskFlow</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap">
+<style>
+  :root {
+    --canvas:#F6F1E7; --surface:#FFFFFF; --ink:#211710; --muted:#74685A;
+    --border:#E3D9C9; --primary:#FF5A2D; --primary-ink:#C2401A; --primary-soft:#FFE9E1; --on-primary:#FFFFFF;
+    --ok:#1F8A5B; --ok-soft:#E1F3EA; --bad:#C93A3A; --bad-soft:#FBE7E7;
+    --info:#4A6CF0; --info-soft:#E8ECFE; --code-bg:#FBF7F1;
+    --firebase:#F5A623; --firebase-ink:#955800; --firebase-soft:#FFF3D5;
+    --hero-bg:#2A1008; --hero-ink:#F6F1E7; --btn-bg:#2A1008; --btn-ink:#F6F1E7;
+    --shadow:0 2px 10px rgba(42,16,8,.07);
+    --mono:"JetBrains Mono","SF Mono",Menlo,Consolas,monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --canvas:#171310; --surface:#211B16; --ink:#F2EBE2; --muted:#A2988B;
+      --border:#3A2F26; --primary:#FF7A50; --primary-ink:#FF8D66; --primary-soft:#3B1E13; --on-primary:#1A1108;
+      --ok:#4FC08D; --ok-soft:#15301F; --bad:#F0736F; --bad-soft:#331819;
+      --info:#8AA0FF; --info-soft:#1B2140; --code-bg:#1A1511;
+      --firebase:#FFC247; --firebase-ink:#FFC247; --firebase-soft:#3A2A0E;
+      --hero-bg:#0D0A08; --hero-ink:#F2EBE2; --btn-bg:#FF7A50; --btn-ink:#1A1108;
+      --shadow:0 2px 10px rgba(0,0,0,.35);
+    }
+  }
+  :root[data-theme="dark"] {
+    --canvas:#171310; --surface:#211B16; --ink:#F2EBE2; --muted:#A2988B;
+    --border:#3A2F26; --primary:#FF7A50; --primary-ink:#FF8D66; --primary-soft:#3B1E13; --on-primary:#1A1108;
+    --ok:#4FC08D; --ok-soft:#15301F; --bad:#F0736F; --bad-soft:#331819;
+    --info:#8AA0FF; --info-soft:#1B2140; --code-bg:#1A1511;
+    --firebase:#FFC247; --firebase-ink:#FFC247; --firebase-soft:#3A2A0E;
+    --hero-bg:#0D0A08; --hero-ink:#F2EBE2; --btn-bg:#FF7A50; --btn-ink:#1A1108;
+    --shadow:0 2px 10px rgba(0,0,0,.35);
+  }
+  * { box-sizing:border-box; }
+  [hidden] { display:none !important; }
+  html { scroll-behavior:smooth; }
+  body {
+    margin:0; background:var(--canvas); color:var(--ink);
+    font-family:"Plus Jakarta Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
+    font-size:16px; line-height:1.65;
+  }
+  .wrap { max-width:960px; margin:0 auto; padding-inline:24px; padding-block:0 96px; }
+  @media (max-width:520px) { .wrap { padding-inline:16px; } }
+
+  header.hero { background:var(--hero-bg); color:var(--hero-ink); padding-block:64px 56px; padding-inline:24px; margin-bottom:48px; }
+  .hero-inner { max-width:960px; margin:0 auto; }
+  .kicker { color:var(--firebase); font-weight:700; letter-spacing:3px; text-transform:uppercase; font-size:13px; }
+  .hero h1 { font-size:clamp(32px,6vw,52px); line-height:1.08; margin:16px 0 0; font-weight:800; letter-spacing:-1px; text-wrap:balance; }
+  .hero h1 em { font-style:normal; color:var(--firebase); }
+  .hero p { max-width:690px; margin:20px 0 0; opacity:.85; font-size:17px; }
+  .hero nav { margin-top:32px; display:flex; flex-wrap:wrap; gap:8px; }
+  .hero nav a { color:inherit; text-decoration:none; border:1px solid rgba(255,255,255,.22); border-radius:999px; padding:6px 16px; font-size:13.5px; font-weight:600; transition:.15s; }
+  .hero nav a:hover { background:#FF5A2D; border-color:#FF5A2D; color:#fff; }
+
+  section { margin-bottom:72px; scroll-margin-top:24px; }
+  .sec-num { display:inline-block; background:var(--primary); color:var(--on-primary); font-weight:800; font-size:12px; letter-spacing:1px; padding:4px 12px; border-radius:999px; text-transform:uppercase; }
+  .sec-num.fb { background:var(--firebase); color:#2A1008; }
+  h2 { font-size:clamp(24px,4vw,32px); font-weight:800; margin:14px 0 6px; letter-spacing:-.5px; line-height:1.2; text-wrap:balance; }
+  h3 { font-size:19px; font-weight:800; margin:36px 0 10px; text-wrap:balance; }
+  h4 { font-size:15px; font-weight:800; margin:24px 0 8px; color:var(--primary-ink); }
+  .lede { color:var(--muted); font-size:17px; margin:0 0 24px; max-width:68ch; }
+  p { margin:0 0 16px; }
+  section > p, .box p { max-width:72ch; }
+  ul,ol { margin:0 0 16px; padding-left:22px; }
+  li { margin-bottom:8px; }
+  hr { border:none; border-top:1px solid var(--border); margin:56px 0; }
+  a { color:var(--primary-ink); }
+
+  code, pre, .t-mono, .m-value { font-variant-ligatures:none; -webkit-font-variant-ligatures:none; }
+  code { font-family:var(--mono); font-size:.86em; background:var(--code-bg); border:1px solid var(--border); border-radius:4px; padding:1px 5px; color:var(--primary-ink); overflow-wrap:anywhere; }
+  pre { font-family:var(--mono); background:var(--code-bg); color:var(--ink); border:1px solid var(--border); border-left:3px solid var(--primary); border-radius:8px; padding:16px 18px; font-size:13px; line-height:1.6; overflow-x:auto; margin:0 0 20px; }
+  pre.fb { border-left-color:var(--firebase); }
+  pre code { background:none; border:none; padding:0; color:inherit; font-size:inherit; overflow-wrap:normal; }
+  pre .c { color:var(--muted); font-style:italic; }
+  pre .k { color:var(--primary-ink); font-weight:700; }
+  pre .f { color:var(--firebase-ink); font-weight:700; }
+  pre .bad-line { color:var(--bad); font-weight:700; }
+  pre .ok-line { color:var(--ok); font-weight:700; }
+  .file-label { display:inline-block; font-family:var(--mono); font-size:11.5px; font-weight:700; color:var(--muted); background:var(--code-bg); border:1px solid var(--border); border-bottom:none; border-radius:6px 6px 0 0; padding:3px 10px; margin-top:4px; }
+  .file-label + pre { border-top-left-radius:0; }
+
+  figure { margin:28px 0 32px; }
+  .fig-scroll { overflow-x:auto; background:var(--surface); border:1px solid var(--border); border-radius:12px; box-shadow:var(--shadow); }
+  .fig-scroll svg { display:block; width:100%; min-width:680px; height:auto; padding:12px; color:var(--ink); }
+  figcaption { margin-top:12px; font-size:14px; color:var(--muted); line-height:1.55; max-width:80ch; }
+  figcaption b { color:var(--ink); }
+
+  .d-box { fill:var(--surface); stroke:currentColor; stroke-width:1.5; }
+  .d-box-soft { fill:var(--primary-soft); stroke:var(--primary); stroke-width:1.5; }
+  .d-firebase { fill:var(--firebase-soft); stroke:var(--firebase); stroke-width:1.5; }
+  .d-ok { fill:var(--ok-soft); stroke:var(--ok); stroke-width:1.5; }
+  .d-bad { fill:var(--bad-soft); stroke:var(--bad); stroke-width:1.5; }
+  .d-info { fill:var(--info-soft); stroke:var(--info); stroke-width:1.5; }
+  .d-line { stroke:currentColor; stroke-width:1.6; fill:none; }
+  .d-line-ok { stroke:var(--ok); stroke-width:1.8; fill:none; }
+  .d-line-bad { stroke:var(--bad); stroke-width:1.8; fill:none; stroke-dasharray:5 4; }
+  .d-divider { stroke:currentColor; stroke-width:1.2; stroke-dasharray:6 5; opacity:.4; }
+  .t { fill:currentColor; font-size:13px; font-family:inherit; }
+  .t-sm { fill:currentColor; font-size:11.5px; font-family:inherit; opacity:.75; }
+  .t-b { fill:currentColor; font-size:13.5px; font-weight:700; font-family:inherit; }
+  .t-head { fill:currentColor; font-size:12px; font-weight:800; font-family:inherit; letter-spacing:1px; opacity:.6; }
+  .t-mono { fill:currentColor; font-size:11.5px; font-family:var(--mono); }
+  .t-ok { fill:var(--ok); font-size:12.5px; font-weight:700; font-family:inherit; }
+  .t-bad { fill:var(--bad); font-size:12.5px; font-weight:700; font-family:inherit; }
+  .t-firebase { fill:var(--firebase-ink); font-size:12.5px; font-weight:800; font-family:inherit; }
+
+  .box { border:1px solid var(--border); border-radius:10px; padding:18px 20px; margin:0 0 20px; background:var(--surface); }
+  .box .box-t { font-weight:800; font-size:15px; margin-bottom:8px; }
+  .box p:last-child, .box ul:last-child, .box pre:last-child { margin-bottom:0; }
+  .box.key { border-left:4px solid var(--primary); }
+  .box.key .box-t { color:var(--primary-ink); }
+  .box.warn { border-left:4px solid var(--bad); }
+  .box.warn .box-t { color:var(--bad); }
+  .box.good { border-left:4px solid var(--ok); }
+  .box.good .box-t { color:var(--ok); }
+  .box.firebase { border-left:4px solid var(--firebase); }
+  .box.firebase .box-t { color:var(--firebase-ink); }
+
+  .cols { display:grid; grid-template-columns:1fr 1fr; gap:18px; margin-bottom:20px; }
+  .cols > .box { margin:0; }
+  .cols.three { grid-template-columns:repeat(3,1fr); }
+  @media (max-width:720px) { .cols, .cols.three { grid-template-columns:1fr; } }
+
+  .table-scroll { overflow-x:auto; margin:0 0 20px; border-radius:10px; box-shadow:var(--shadow); }
+  table { width:100%; min-width:560px; border-collapse:collapse; font-size:14.5px; background:var(--surface); }
+  th { background:var(--hero-bg); color:var(--hero-ink); text-align:left; padding:11px 14px; font-size:12px; text-transform:uppercase; letter-spacing:.6px; }
+  td { padding:11px 14px; border-bottom:1px solid var(--border); vertical-align:top; }
+  tr:last-child td { border-bottom:none; }
+  td.num { font-variant-numeric:tabular-nums; font-weight:800; white-space:nowrap; }
+  .bar { display:inline-block; vertical-align:middle; width:calc(100% - 34px); min-width:60px; height:8px; margin-right:10px; background:var(--border); border-radius:999px; overflow:hidden; }
+  .bar span { display:block; height:100%; background:var(--primary); border-radius:999px; }
+
+  .demo { border:2px solid var(--firebase); border-radius:12px; background:var(--surface); padding:20px; margin:28px 0; box-shadow:var(--shadow); }
+  .demo-head { display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin-bottom:6px; }
+  .demo-tag { background:var(--firebase); color:#2A1008; font-size:11px; font-weight:800; letter-spacing:1px; text-transform:uppercase; padding:3px 10px; border-radius:999px; }
+  .demo-head h3 { margin:0; font-size:17px; }
+  .demo-sub { color:var(--muted); font-size:14px; margin:0 0 18px; }
+  .demo-grid { display:grid; grid-template-columns:minmax(0,340px) minmax(0,1fr); gap:20px; align-items:start; }
+  .demo-grid.even { grid-template-columns:minmax(0,1fr) minmax(0,1fr); }
+  @media (max-width:760px) { .demo-grid, .demo-grid.even { grid-template-columns:minmax(0,1fr); } }
+  .controls { display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-bottom:16px; }
+  .ctrl-label { font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:.6px; color:var(--muted); }
+  button { font:inherit; font-size:14px; font-weight:700; cursor:pointer; background:var(--btn-bg); color:var(--btn-ink); border:none; border-radius:8px; padding:9px 16px; transition:.15s; }
+  button:hover { opacity:.88; }
+  button:focus-visible, a:focus-visible { outline:2px solid var(--primary); outline-offset:2px; }
+  .seg { display:inline-flex; flex-wrap:wrap; background:var(--code-bg); border:1.5px solid var(--border); border-radius:18px; padding:3px; gap:3px; }
+  .seg button { background:transparent; color:var(--muted); border-radius:999px; padding:6px 14px; font-size:13.5px; }
+  .seg button[aria-pressed="true"] { background:var(--primary); color:var(--on-primary); }
+  .note { font-size:14px; color:var(--muted); margin:14px 0 0; }
+  .note b { color:var(--ink); }
+
+  .phone { max-width:340px; margin:0 auto; border:2px solid var(--border); background:var(--code-bg); border-radius:24px; padding:12px; }
+  .phone-bar { width:90px; height:5px; border-radius:999px; background:var(--border); margin:2px auto 12px; }
+  .screen { min-height:270px; background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:18px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; text-align:center; position:relative; overflow:hidden; }
+  .screen .s-name { font-weight:800; font-size:18px; }
+  .screen .s-muted { color:var(--muted); font-size:13px; }
+  .rn-avatar { position:relative; flex:none; }
+  .rn-avatar img { display:block; width:100%; height:100%; border-radius:50%; background:var(--border); }
+  .rn-badge { position:absolute; right:0; bottom:0; width:26px; height:26px; border-radius:50%; background:#FF5A2D; border:2px solid var(--surface); display:grid; place-items:center; color:#fff; font-size:12px; }
+  .rn-alert { position:absolute; inset:0; background:rgba(20,12,8,.55); display:grid; place-items:center; padding:18px; }
+  .rn-alert div { background:var(--surface); color:var(--ink); border-radius:12px; padding:14px 16px; text-align:left; font-size:13px; box-shadow:0 6px 24px rgba(0,0,0,.3); }
+  .rn-alert b { display:block; font-size:14px; margin-bottom:4px; }
+  .rn-alert span { display:block; text-align:right; color:#4A6CF0; font-weight:800; margin-top:10px; }
+
+  .metric-row { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; margin-bottom:14px; }
+  .metric { border:1.5px solid var(--border); border-radius:10px; padding:12px 14px; background:var(--code-bg); }
+  .metric .m-label { font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.6px; color:var(--muted); }
+  .metric .m-value { font-size:20px; font-weight:800; line-height:1.25; margin-top:2px; font-family:var(--mono); overflow-wrap:anywhere; }
+  .metric.is-ok { border-color:var(--ok); background:var(--ok-soft); }
+  .metric.is-ok .m-value { color:var(--ok); }
+  .metric.is-bad { border-color:var(--bad); background:var(--bad-soft); }
+  .metric.is-bad .m-value { color:var(--bad); }
+
+  .log { background:var(--code-bg); border:1px solid var(--border); border-radius:10px; padding:12px; min-height:110px; font-family:var(--mono); font-size:12.5px; color:var(--muted); overflow-x:auto; }
+  .log div { margin-bottom:5px; }
+  .log .ok { color:var(--ok); }
+  .log .bad { color:var(--bad); }
+  .log .info { color:var(--info); }
+
+  .check-list, .x-list { list-style:none; padding-left:0; }
+  .check-list li, .x-list li { padding-left:28px; position:relative; margin-bottom:10px; }
+  .check-list li::before { content:"✓"; position:absolute; left:0; top:0; color:var(--ok); font-weight:800; font-size:16px; }
+  .x-list li::before { content:"✕"; position:absolute; left:0; top:0; color:var(--bad); font-weight:800; font-size:15px; }
+  .step { display:grid; grid-template-columns:42px 1fr; gap:12px; margin-bottom:18px; align-items:start; }
+  .step-n { width:38px; height:38px; border-radius:50%; background:var(--primary); color:var(--on-primary); display:grid; place-items:center; font-weight:800; }
+  .step h4 { margin:2px 0 4px; color:var(--ink); font-size:15px; }
+  .step p { margin:0; color:var(--muted); }
+
+  footer { border-top:1px solid var(--border); padding-top:24px; color:var(--muted); font-size:14px; }
+  @media (prefers-reduced-motion: reduce) { * { transition:none !important; } html { scroll-behavior:auto; } }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="hero-inner">
+    <div class="kicker">TaskFlow · Módulo 8 · Proyecto final</div>
+    <h1>Perfil con <em>avatar</em>:<br>de la galería a Firestore</h1>
+    <p>
+      La última pieza de TaskFlow: elegir una foto con <code style="color:inherit;background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.18)">expo-image-picker</code>,
+      mostrarla como un avatar circular, guardarla en <code style="color:inherit;background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.18)">users/{uid}</code>
+      y reflejarla en toda la app con Redux, con las reglas de Firebase que lo permiten.
+    </p>
+    <nav>
+      <a href="#picker">1 · ImagePicker</a>
+      <a href="#avatar">2 · Avatar</a>
+      <a href="#integracion">3 · Integración</a>
+      <a href="#reglas">4 · Reglas de Firebase</a>
+      <a href="#entrega">5 · Entrega final</a>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap">
+
+<section id="picker">
+  <span class="sec-num">Sección 1</span>
+  <h2>Expo ImagePicker: pedirle una foto al sistema operativo</h2>
+  <p class="lede">En la web alcanza con un <code>&lt;input type="file"&gt;</code>. En mobile, la galería es del sistema operativo: le pedimos que abra su propia interfaz y nos devuelva un archivo.</p>
+
+  <p>
+    <code>expo-image-picker</code> es la librería estándar de Expo para eso. Resuelve tres cosas en Android y en iOS:
+    <b>permisos</b> (preguntarle al usuario), <b>interfaz nativa</b> (la galería real del teléfono) y
+    <b>edición básica</b> (el recorte cuadrado que necesita un avatar).
+  </p>
+
+  <figure>
+    <div class="fig-scroll">
+    <svg viewBox="0 0 900 310" role="img" aria-label="Flujo de pickImage: permiso, selector nativo, resultado y uri local, con las salidas por permiso denegado y por cancelación.">
+      <defs>
+        <marker id="p1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="currentColor"/></marker>
+        <marker id="pok" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--ok)"/></marker>
+        <marker id="pbad" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--bad)"/></marker>
+      </defs>
+      <text class="t-head" x="24" y="30">pickImage() en ProfileScreen</text>
+
+      <rect class="d-box-soft" x="24" y="52" width="190" height="76" rx="9"/>
+      <text class="t-b" x="119" y="80" text-anchor="middle">1 · Permiso</text>
+      <text class="t-mono" x="119" y="104" text-anchor="middle">status === 'granted'</text>
+
+      <line class="d-line" x1="216" y1="90" x2="244" y2="90" marker-end="url(#p1)"/>
+
+      <rect class="d-info" x="250" y="52" width="210" height="76" rx="9"/>
+      <text class="t-b" x="355" y="80" text-anchor="middle">2 · Galería nativa</text>
+      <text class="t-mono" x="355" y="104" text-anchor="middle">launchImageLibraryAsync</text>
+
+      <line class="d-line" x1="462" y1="90" x2="490" y2="90" marker-end="url(#p1)"/>
+
+      <rect class="d-box" x="496" y="52" width="180" height="76" rx="9"/>
+      <text class="t-b" x="586" y="80" text-anchor="middle">3 · Resultado</text>
+      <text class="t-mono" x="586" y="104" text-anchor="middle">result.canceled ?</text>
+
+      <line class="d-line" x1="678" y1="90" x2="706" y2="90" marker-end="url(#p1)"/>
+
+      <rect class="d-ok" x="712" y="52" width="164" height="76" rx="9"/>
+      <text class="t-b" x="794" y="80" text-anchor="middle">4 · URI local</text>
+      <text class="t-mono" x="794" y="104" text-anchor="middle">assets[0].uri</text>
+
+      <line class="d-line-bad" x1="119" y1="130" x2="119" y2="190" marker-end="url(#pbad)"/>
+      <text class="t-bad" x="129" y="166">denied</text>
+      <rect class="d-bad" x="24" y="196" width="190" height="62" rx="9"/>
+      <text class="t-b" x="119" y="222" text-anchor="middle">Alert.alert(...)</text>
+      <text class="t-sm" x="119" y="242" text-anchor="middle">explicar y salir</text>
+
+      <line class="d-line-bad" x1="586" y1="130" x2="586" y2="190" marker-end="url(#pbad)"/>
+      <text class="t-bad" x="596" y="166">canceled: true</text>
+      <rect class="d-bad" x="496" y="196" width="180" height="62" rx="9"/>
+      <text class="t-b" x="586" y="222" text-anchor="middle">return</text>
+      <text class="t-sm" x="586" y="242" text-anchor="middle">no hay assets que leer</text>
+
+      <line class="d-line-ok" x1="794" y1="130" x2="794" y2="190" marker-end="url(#pok)"/>
+      <rect class="d-ok" x="712" y="196" width="164" height="62" rx="9"/>
+      <text class="t-b" x="794" y="222" text-anchor="middle">savePhoto(uri)</text>
+      <text class="t-sm" x="794" y="242" text-anchor="middle">Firestore + Redux</text>
+
+      <text class="t-sm" x="24" y="294">Ejemplo de uri:</text>
+      <text class="t-mono" x="120" y="294">file:///data/user/0/…/cache/ImagePicker/8c1f2a7e.jpeg</text>
+    </svg>
+    </div>
+    <figcaption><b>Dos salidas tempranas y un camino feliz.</b> Un permiso denegado o una selección cancelada no son errores: son finales normales del flujo y la app tiene que seguir estable. Lo que vuelve es una ruta <b>local</b> del teléfono, no una URL pública.</figcaption>
+  </figure>
+
+  <div class="file-label">src/screens/profile/ProfileScreen.tsx</div>
+  <pre><code><span class="k">const</span> pickImage = <span class="k">async</span> () =&gt; {
+  <span class="c">// 1. Sin permiso 'granted' no se puede abrir la galería</span>
+  <span class="k">const</span> { status } = <span class="k">await</span> ImagePicker.requestMediaLibraryPermissionsAsync()
+
+  <span class="k">if</span> (status !== 'granted') {
+    Alert.alert(
+      'Permisos requeridos',
+      'Necesitamos acceso a tu galería para cambiar la foto de perfil.'
+    )
+    <span class="k">return</span>
+  }
+
+  <span class="c">// 2. Selector nativo con recorte cuadrado para el avatar</span>
+  <span class="k">const</span> result = <span class="k">await</span> ImagePicker.launchImageLibraryAsync({
+    mediaTypes: ['images'],
+    allowsEditing: <span class="k">true</span>,
+    aspect: [1, 1],
+    quality: 0.7,
+  })
+
+  <span class="c">// 3. Si el usuario canceló, no hay assets para leer</span>
+  <span class="k">if</span> (result.canceled) <span class="k">return</span>
+
+  <span class="k">await</span> savePhoto(result.assets[0].uri)
+}</code></pre>
+
+  <h3>Las opciones del selector, una por una</h3>
+  <div class="table-scroll">
+  <table>
+    <tr><th>Opción</th><th>Valor en TaskFlow</th><th>Para qué sirve</th></tr>
+    <tr><td><code>mediaTypes</code></td><td><code>['images']</code></td><td>Solo fotos, sin videos. El material muestra <code>ImagePicker.MediaTypeOptions.Images</code>: esa forma está <b>deprecada</b> en SDK 54 y se reemplaza por el array.</td></tr>
+    <tr><td><code>allowsEditing</code></td><td><code>true</code></td><td>Abre el editor nativo para recortar antes de confirmar.</td></tr>
+    <tr><td><code>aspect</code></td><td><code>[1, 1]</code></td><td>Recorte cuadrado, ideal para un círculo. Se aplica en Android; en iOS el recorte ya es siempre cuadrado.</td></tr>
+    <tr><td><code>quality</code></td><td><code>0.7</code></td><td>Compresión de 0 a 1. Un avatar no necesita pesar varios megas.</td></tr>
+  </table>
+  </div>
+
+  <div class="cols">
+    <div class="box key">
+      <div class="box-t">¿Hace falta pedir permiso?</div>
+      <p>Según la documentación de Expo, para <b>elegir imágenes</b> de la galería no es obligatorio. Igual conviene pedirlo y manejar el <code>'denied'</code> con un <code>Alert</code>: es lo que evalúa la entrega (“sin errores de permisos”) y el día que agregues videos o cámara, ya está resuelto.</p>
+    </div>
+    <div class="box">
+      <div class="box-t">El texto del diálogo en <code>app.json</code></div>
+      <p>El plugin <code>expo-image-picker</code> con <code>photosPermission</code> define el mensaje que ve el usuario en iOS. Se aplica en builds nativas (EAS / prebuild). En Expo Go vas a ver el texto de Expo Go.</p>
+    </div>
+  </div>
+
+  <div class="demo">
+    <div class="demo-head"><span class="demo-tag">Demo en vivo</span><h3>Tres finales posibles para <code>pickImage()</code></h3></div>
+    <p class="demo-sub">Elegí qué hace el usuario y mirá qué objeto devuelve el selector y qué ve en pantalla.</p>
+    <div class="controls">
+      <div class="seg" role="group" aria-label="Acción del usuario">
+        <button id="pk-ok" type="button" aria-pressed="true">Elige una foto</button>
+        <button id="pk-cancel" type="button" aria-pressed="false">Cancela</button>
+        <button id="pk-deny" type="button" aria-pressed="false">Niega el permiso</button>
+      </div>
+    </div>
+    <div class="demo-grid">
+      <div class="phone"><div class="phone-bar"></div><div class="screen" id="pk-screen"></div></div>
+      <div>
+        <div class="ctrl-label" style="margin-bottom:6px">Lo que recibe tu código</div>
+        <pre id="pk-result" style="min-height:190px"><code></code></pre>
+        <p class="note" id="pk-note"></p>
+      </div>
+    </div>
+  </div>
+
+  <div class="box warn">
+    <div class="box-t">Error común: pensar que la foto ya está “en la nube”</div>
+    <p>La <code>uri</code> empieza con <code>file://</code> y apunta a la caché de <b>ese</b> teléfono. Guardarla en Firestore alcanza para la entrega: la app la recuerda entre sesiones en el mismo dispositivo. En otro teléfono, o si el sistema limpia la caché, esa ruta ya no existe. Por eso la UI siempre necesita un <b>fallback</b>. En producción, el archivo se sube a Cloud Storage (sección 4).</p>
+  </div>
+</section>
+
+<hr>
+
+<section id="avatar">
+  <span class="sec-num">Sección 2</span>
+  <h2>Diseño del avatar: un círculo que no se deforma</h2>
+  <p class="lede">En la web hay <code>&lt;img&gt;</code>, <code>object-fit</code> y <code>border-radius: 50%</code>. En React Native las piezas se parecen, pero tienen reglas propias.</p>
+
+  <h3><code>source</code> en lugar de <code>src</code></h3>
+  <div class="cols">
+    <div class="box">
+      <div class="box-t">Imagen remota o de archivo</div>
+      <pre style="margin:0 0 10px"><code>source={{ uri: user.photoURL }}</code></pre>
+      <p>Una <code>uri</code> (<code>file://</code> o <code>https://</code>) <b>necesita</b> <code>width</code> y <code>height</code> explícitos. Sin eso se renderiza con altura 0.</p>
+    </div>
+    <div class="box">
+      <div class="box-t">Imagen local empaquetada</div>
+      <pre style="margin:0 0 10px"><code>require('../../assets/avatar.webp')</code></pre>
+      <p>Con <code>require</code>, Metro resuelve el archivo al compilar y conoce sus dimensiones. En TaskFlow es el <code>fallbackAvatar</code>.</p>
+    </div>
+  </div>
+
+  <h3>La regla del círculo: radio = lado ÷ 2</h3>
+  <p>
+    <code>borderRadius: '50%'</code> puede dar óvalos dentro de contenedores Flexbox que no son perfectamente cuadrados.
+    TaskFlow define el tamaño una vez y deriva el radio de esa constante: el perfil usa <b>88 → 44</b> y el header de la lista, <b>40 → 20</b>.
+  </p>
+  <div class="file-label">src/screens/profile/ProfileScreen.tsx</div>
+  <pre><code><span class="c">// Para un círculo perfecto el borderRadius tiene que ser</span>
+<span class="c">// exactamente la mitad del lado; '50%' no es confiable en RN.</span>
+<span class="k">const</span> AVATAR_SIZE = 88
+
+avatar: {
+  width: AVATAR_SIZE,
+  height: AVATAR_SIZE,
+  borderRadius: AVATAR_SIZE / 2
+},</code></pre>
+
+  <div class="demo">
+    <div class="demo-head"><span class="demo-tag">Demo en vivo</span><h3>Tamaño y <code>resizeMode</code> con una foto que no es cuadrada</h3></div>
+    <p class="demo-sub">La foto de ejemplo es apaisada (3:2). Cambiá el modo y mirá cuál la llena sin deformarla.</p>
+    <div class="controls">
+      <span class="ctrl-label">Tamaño</span>
+      <div class="seg" role="group" aria-label="Tamaño del avatar">
+        <button id="av-40" type="button" aria-pressed="false">40 · header</button>
+        <button id="av-88" type="button" aria-pressed="true">88 · perfil</button>
+        <button id="av-150" type="button" aria-pressed="false">150 · material</button>
+      </div>
+    </div>
+    <div class="controls">
+      <span class="ctrl-label">resizeMode</span>
+      <div class="seg" role="group" aria-label="resizeMode">
+        <button id="rm-cover" type="button" aria-pressed="true">cover</button>
+        <button id="rm-contain" type="button" aria-pressed="false">contain</button>
+        <button id="rm-stretch" type="button" aria-pressed="false">stretch</button>
+      </div>
+    </div>
+    <div class="demo-grid">
+      <div class="phone"><div class="phone-bar"></div><div class="screen" id="av-screen">
+        <div class="rn-avatar" id="av-box"><img id="av-img" alt="Avatar de ejemplo con un paisaje apaisado"><span class="rn-badge" aria-hidden="true">✎</span></div>
+        <div class="s-name">estudiante@taskflow.app</div>
+        <div class="s-muted">Estudiante de Desarrollo de Apps</div>
+      </div></div>
+      <div>
+        <pre id="av-code"><code></code></pre>
+        <p class="note" id="av-note"></p>
+      </div>
+    </div>
+  </div>
+
+  <div class="table-scroll">
+  <table>
+    <tr><th>resizeMode</th><th>Qué hace</th><th>¿Para un avatar?</th></tr>
+    <tr><td><code>cover</code> (default)</td><td>Escala uniforme hasta llenar el contenedor. Recorta lo que sobra.</td><td><b style="color:var(--ok)">Sí.</b> Es el ideal.</td></tr>
+    <tr><td><code>contain</code></td><td>Escala hasta que entra entera. Deja franjas vacías.</td><td>Solo si no se puede perder nada de la imagen.</td></tr>
+    <tr><td><code>stretch</code></td><td>Estira a la fuerza para llenar. Deforma.</td><td><b style="color:var(--bad)">Nunca</b> en un perfil.</td></tr>
+  </table>
+  </div>
+
+  <h3>Tres estados que la pantalla tiene que resolver</h3>
+  <div class="cols three">
+    <div class="box"><div class="box-t">Vacío</div><p>El usuario nunca eligió foto: <code>photoURL === null</code>. Se muestra <code>fallbackAvatar</code> o un círculo con la inicial del email.</p></div>
+    <div class="box"><div class="box-t">Guardando</div><p>Mientras Firestore responde, <code>isSaving</code> pone un <code>ActivityIndicator</code> sobre el avatar y deshabilita el toque.</p></div>
+    <div class="box"><div class="box-t">Error de carga</div><p>La <code>uri</code> guardada ya no existe (otro teléfono, caché limpia). <code>onError</code> vuelve al fallback.</p></div>
+  </div>
+
+  <h4>Mejora sugerida: fallback cuando la imagen no carga</h4>
+  <pre><code><span class="k">const</span> [failed, setFailed] = useState(<span class="k">false</span>)
+
+&lt;Image
+  source={user?.photoURL &amp;&amp; !failed ? { uri: user.photoURL } : fallbackAvatar}
+  style={styles.avatar}
+  onError={() =&gt; setFailed(<span class="k">true</span>)}  <span class="c">// la ruta file:// ya no existe</span>
+/&gt;</code></pre>
+
+  <div class="cols">
+    <div class="box key">
+      <div class="box-t">Área táctil de al menos 44×44</div>
+      <p>El badge de la cámara mide 28 px: solo sería difícil de tocar. En TaskFlow el <code>TouchableOpacity</code> envuelve <b>todo</b> el avatar (88×88), y el badge solo indica que se puede tocar.</p>
+    </div>
+    <div class="box key">
+      <div class="box-t">¿Hace falta un cache-buster?</div>
+      <p>Con ImagePicker, cada selección genera un archivo con nombre nuevo, así que la <code>uri</code> cambia y no hay caché vieja. Con Storage y una ruta fija como <code>avatars/{uid}/avatar.jpg</code>, sí puede quedar la imagen vieja en caché: agregale una versión a la URL, por ejemplo <code>url + '&amp;v=' + Date.now()</code> (con <code>&amp;</code>, porque la URL de descarga ya trae <code>?alt=media</code>).</p>
+    </div>
+  </div>
+</section>
+
+<hr>
+
+<section id="integracion">
+  <span class="sec-num">Sección 3</span>
+  <h2>Integración: la misma foto en toda la app</h2>
+  <p class="lede">Si la foto solo vive en el <code>useState</code> de Perfil, al volver a Tareas el header muestra la anterior. La solución es un flujo circular: galería → Firestore → Redux → pantallas.</p>
+
+  <figure>
+    <div class="fig-scroll">
+    <svg viewBox="0 0 900 420" role="img" aria-label="Flujo de integración del avatar. Al cambiar la foto: ProfileScreen escribe en Firestore; si se acepta, Redux se actualiza y ProfileScreen y TasksScreen se re-renderizan; si se rechaza, se muestra un Alert sin dispatch. Al abrir la app: onAuthStateChanged, getUserProfile, setUserPhoto y las pantallas muestran la foto.">
+      <defs>
+        <marker id="i1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="currentColor"/></marker>
+        <marker id="iok" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--ok)"/></marker>
+        <marker id="ibad" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--bad)"/></marker>
+      </defs>
+
+      <text class="t-head" x="24" y="30">Al cambiar la foto</text>
+
+      <rect class="d-box-soft" x="24" y="52" width="200" height="80" rx="10"/>
+      <text class="t-b" x="124" y="82" text-anchor="middle">ProfileScreen</text>
+      <text class="t-mono" x="124" y="106" text-anchor="middle">savePhoto(uri)</text>
+
+      <line class="d-line" x1="226" y1="92" x2="344" y2="92" marker-end="url(#i1)"/>
+      <text class="t-sm" x="285" y="82" text-anchor="middle">1 · setDoc</text>
+
+      <rect class="d-firebase" x="350" y="52" width="200" height="80" rx="10"/>
+      <text class="t-b" x="450" y="82" text-anchor="middle">Cloud Firestore</text>
+      <text class="t-mono" x="450" y="106" text-anchor="middle">users/{uid}.photoURL</text>
+
+      <line class="d-line-ok" x1="552" y1="92" x2="670" y2="92" marker-end="url(#iok)"/>
+      <text class="t-ok" x="611" y="82" text-anchor="middle">2 · aceptado</text>
+
+      <rect class="d-info" x="676" y="52" width="200" height="80" rx="10"/>
+      <text class="t-b" x="776" y="82" text-anchor="middle">Redux · authSlice</text>
+      <text class="t-mono" x="776" y="106" text-anchor="middle">setUserPhoto(uri)</text>
+
+      <line class="d-line" x1="740" y1="134" x2="608" y2="190" marker-end="url(#i1)"/>
+      <line class="d-line" x1="800" y1="134" x2="791" y2="190" marker-end="url(#i1)"/>
+      <text class="t-sm" x="640" y="150" text-anchor="end">3 · useAppSelector</text>
+
+      <rect class="d-ok" x="520" y="196" width="170" height="64" rx="9"/>
+      <text class="t-b" x="605" y="222" text-anchor="middle">ProfileScreen</text>
+      <text class="t-sm" x="605" y="242" text-anchor="middle">avatar 88 × 88</text>
+
+      <rect class="d-ok" x="706" y="196" width="170" height="64" rx="9"/>
+      <text class="t-b" x="791" y="222" text-anchor="middle">TasksScreen</text>
+      <text class="t-sm" x="791" y="242" text-anchor="middle">header 40 × 40</text>
+
+      <line class="d-line-bad" x1="450" y1="134" x2="400" y2="190" marker-end="url(#ibad)"/>
+      <text class="t-bad" x="404" y="160" text-anchor="end">rechazado</text>
+
+      <rect class="d-bad" x="24" y="196" width="440" height="64" rx="9"/>
+      <text class="t-b" x="244" y="222" text-anchor="middle">Reglas: permission-denied</text>
+      <text class="t-sm" x="244" y="242" text-anchor="middle">catch → Alert · sin dispatch · la UI no muestra algo que no se guardó</text>
+
+      <line class="d-divider" x1="24" y1="290" x2="876" y2="290"/>
+      <text class="t-head" x="24" y="318">Al abrir la app (sesión restaurada)</text>
+
+      <rect class="d-firebase" x="24" y="334" width="190" height="64" rx="9"/>
+      <text class="t-b" x="119" y="360" text-anchor="middle">onAuthStateChanged</text>
+      <text class="t-sm" x="119" y="380" text-anchor="middle">hay usuario</text>
+
+      <line class="d-line" x1="216" y1="366" x2="244" y2="366" marker-end="url(#i1)"/>
+
+      <rect class="d-firebase" x="250" y="334" width="190" height="64" rx="9"/>
+      <text class="t-b" x="345" y="360" text-anchor="middle">getUserProfile(uid)</text>
+      <text class="t-sm" x="345" y="380" text-anchor="middle">getDoc(users/{uid})</text>
+
+      <line class="d-line" x1="442" y1="366" x2="470" y2="366" marker-end="url(#i1)"/>
+
+      <rect class="d-info" x="476" y="334" width="190" height="64" rx="9"/>
+      <text class="t-b" x="571" y="360" text-anchor="middle">setUserPhoto(url)</text>
+      <text class="t-sm" x="571" y="380" text-anchor="middle">Redux hidratado</text>
+
+      <line class="d-line" x1="668" y1="366" x2="696" y2="366" marker-end="url(#i1)"/>
+
+      <rect class="d-ok" x="702" y="334" width="174" height="64" rx="9"/>
+      <text class="t-b" x="789" y="360" text-anchor="middle">Perfil + header</text>
+      <text class="t-sm" x="789" y="380" text-anchor="middle">muestran la foto</text>
+    </svg>
+    </div>
+    <figcaption><b>Firestore primero, Redux después.</b> El <code>dispatch</code> ocurre recién cuando la escritura fue aceptada. Si las reglas la rechazan, el store no cambia y ninguna pantalla muestra una foto que no quedó guardada. Ese rechazo es justamente lo que pasa cuando faltan las reglas de la sección 4.</figcaption>
+  </figure>
+
+  <h3>1 · La capa de datos: <code>users/{uid}</code></h3>
+  <div class="file-label">src/services/profile/profileService.ts</div>
+  <pre class="fb"><code><span class="c">// El perfil de cada usuario vive en un documento `users/{uid}`.</span>
+<span class="k">export const</span> getUserProfile = <span class="k">async</span> (userId: string): Promise&lt;UserProfile | null&gt; =&gt; {
+  <span class="k">const</span> snapshot = <span class="k">await</span> <span class="f">getDoc</span>(doc(db, 'users', userId))
+  <span class="k">if</span> (!snapshot.exists()) <span class="k">return null</span>
+
+  <span class="k">const</span> data = snapshot.data()
+  <span class="k">return</span> { photoURL: data.photoURL ?? <span class="k">null</span> }
+}
+
+<span class="k">export const</span> updateUserPhoto = <span class="k">async</span> (userId: string, photoURL: string) =&gt; {
+  <span class="c">// setDoc con merge y no updateDoc: el documento del usuario</span>
+  <span class="c">// puede no existir todavía (el registro solo crea la cuenta en Auth).</span>
+  <span class="k">await</span> <span class="f">setDoc</span>(doc(db, 'users', userId), { photoURL }, { merge: <span class="k">true</span> })
+}</code></pre>
+
+  <div class="box firebase">
+    <div class="box-t"><code>updateDoc</code> vs. <code>setDoc(…, { merge: true })</code></div>
+    <p>El ejemplo del material usa <code>updateDoc</code>. Con un usuario recién registrado falla con <code>not-found</code> (“No document to update”), porque <code>createUserWithEmailAndPassword</code> crea la cuenta en Auth pero no el documento en Firestore. <code>setDoc</code> con <code>merge</code> crea el documento la primera vez y después solo actualiza <code>photoURL</code>. Para las reglas, eso significa que la <b>primera</b> foto es un <code>create</code> y las siguientes son <code>update</code>.</p>
+  </div>
+
+  <h3>2 · El estado global: <code>setUserPhoto</code></h3>
+  <div class="file-label">src/features/auth/authSlice.ts</div>
+  <pre><code>setUserPhoto: (state, action: PayloadAction&lt;string | null&gt;) =&gt; {
+  <span class="k">if</span> (state.user) {
+    state.user.photoURL = action.payload
+  }
+},</code></pre>
+
+  <h3>3 · Guardar desde la pantalla</h3>
+  <div class="file-label">src/screens/profile/ProfileScreen.tsx</div>
+  <pre><code><span class="k">const</span> savePhoto = <span class="k">async</span> (photoURL: string) =&gt; {
+  <span class="k">if</span> (!user) <span class="k">return</span>      <span class="c">// primero el guard...</span>
+  setIsSaving(<span class="k">true</span>)        <span class="c">// ...después el loading</span>
+
+  <span class="k">try</span> {
+    <span class="c">// Firestore primero (persistencia entre sesiones)...</span>
+    <span class="k">await</span> updateUserPhoto(user.uid, photoURL)
+
+    <span class="c">// ...y Redux después: toda la UI suscripta al store se entera ya.</span>
+    dispatch(setUserPhoto(photoURL))
+  } <span class="k">catch</span> (error) {
+    Alert.alert('Error', 'No se pudo guardar la foto. Probá de nuevo.')
+  } <span class="k">finally</span> {
+    setIsSaving(<span class="k">false</span>)
+  }
+}</code></pre>
+
+  <div class="box warn">
+    <div class="box-t">El orden del guard importa</div>
+    <p>Si <code>setIsSaving(true)</code> va <b>antes</b> de <code>if (!user) return</code>, ese <code>return</code> sale sin pasar por el <code>finally</code> del <code>try</code>, y el spinner queda girando para siempre. Primero se valida y después se activa el estado de carga.</p>
+  </div>
+
+  <h3>4 · Hidratar la foto al abrir la app</h3>
+  <div class="file-label">src/navigation/RootNavigator.tsx</div>
+  <pre><code>onAuthStateChanged(auth, <span class="k">async</span> (user) =&gt; {
+  <span class="k">if</span> (user) {
+    dispatch(setUser({ uid: user.uid, email: user.email, displayName: user.displayName, photoURL: <span class="k">null</span> }))
+
+    <span class="c">// La foto vive en Firestore; se hidrata después de setUser</span>
+    <span class="c">// para no demorar la entrada a la app.</span>
+    <span class="k">try</span> {
+      <span class="k">const</span> profile = <span class="k">await</span> getUserProfile(user.uid)
+      <span class="k">if</span> (profile?.photoURL) dispatch(setUserPhoto(profile.photoURL))
+    } <span class="k">catch</span> (error) { <span class="c">/* sin foto: se ve el fallback */</span> }
+  } <span class="k">else</span> {
+    dispatch(setUser(<span class="k">null</span>))
+  }
+})</code></pre>
+
+  <div class="cols">
+    <div class="box good"><div class="box-t">Sin prop drilling</div><p><code>ProfileScreen</code> y <code>TasksScreen</code> están en tabs distintas y ninguna le pasa props a la otra. Las dos leen <code>user.photoURL</code> del mismo store.</p></div>
+    <div class="box good"><div class="box-t">Sin esperar a Firestore para entrar</div><p><code>setUser</code> llega primero con <code>photoURL: null</code>: la navegación privada se monta ya y la foto aparece un instante después.</p></div>
+  </div>
+</section>
+<hr>
+
+<section id="reglas">
+  <span class="sec-num fb">Sección 4</span>
+  <h2>Reglas de Firebase para que el usuario pueda poner su avatar</h2>
+  <p class="lede">El código ya está completo, pero en un proyecto de Firebase recién creado la foto no se guarda: Firestore arranca bloqueando todo lo que no esté permitido de forma explícita.</p>
+
+  <p>
+    Sin reglas para <code>users/{userId}</code>, la llamada a <code>updateUserPhoto</code> termina en el <code>catch</code> con este error, y el usuario ve el Alert <i>“No se pudo guardar la foto”</i>:
+  </p>
+  <pre class="bad-line" style="border-left-color:var(--bad)"><code>FirebaseError: Missing or insufficient permissions.   <span class="c">// error.code === 'permission-denied'</span></code></pre>
+
+  <div class="cols">
+    <div class="box warn">
+      <div class="box-t">“Modo de producción”</div>
+      <p>La base se crea con <code>allow read, write: if false;</code>. Nada funciona hasta que publiques reglas propias: ni las tareas ni el avatar.</p>
+    </div>
+    <div class="box warn">
+      <div class="box-t">“Modo de prueba”</div>
+      <p>Permite <b>todo</b> hasta una fecha de vencimiento (<code>request.time &lt; timestamp.date(…)</code>). Mientras dura, cualquiera puede leer o pisar los perfiles de otros; cuando vence, la app deja de funcionar.</p>
+    </div>
+  </div>
+
+  <h3>Dónde se cargan</h3>
+  <div class="step"><div class="step-n">1</div><div><h4>Consola de Firebase → Firestore Database → pestaña “Reglas”</h4><p>Es el mismo proyecto que figura en <code>projectId</code> dentro de <code>src/config/firebase.ts</code>.</p></div></div>
+  <div class="step"><div class="step-n">2</div><div><h4>Reemplazá todo el contenido por el archivo de abajo</h4><p>Incluye las reglas de <code>tasks</code> del módulo 7: si solo pegás el bloque de <code>users</code>, las tareas dejan de cargar.</p></div></div>
+  <div class="step"><div class="step-n">3</div><div><h4>Tocá “Publicar” y esperá alrededor de un minuto</h4><p>Después cerrá y abrí la app. Si preferís la CLI: guardalo como <code>firestore.rules</code> y ejecutá <code>firebase deploy --only firestore:rules</code>.</p></div></div>
+
+  <div class="file-label">firestore.rules</div>
+  <pre class="fb"><code>rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    <span class="k">function</span> isSignedIn() {
+      <span class="k">return</span> request.auth != null;
+    }
+
+    <span class="k">function</span> isOwner(uid) {
+      <span class="k">return</span> isSignedIn() &amp;&amp; request.auth.uid == uid;
+    }
+
+    <span class="c">// La uri de ImagePicker (file://...) o, en producción, una URL de Storage</span>
+    <span class="k">function</span> isValidPhoto(value) {
+      <span class="k">return</span> value == null
+        || (value is string &amp;&amp; value.size() &gt; 0 &amp;&amp; value.size() &lt;= 2048);
+    }
+
+    <span class="c">// ── Tareas (módulo 7) ────────────────────────────────</span>
+    match /tasks/{taskId} {
+      allow read, delete: <span class="k">if</span> isOwner(resource.data.userId);
+      allow create: <span class="k">if</span> isOwner(request.resource.data.userId);
+      allow update: <span class="k">if</span> isOwner(resource.data.userId)
+        &amp;&amp; request.resource.data.userId == resource.data.userId;
+    }
+
+    <span class="c">// ── Perfil y avatar (módulo 8) ───────────────────────</span>
+    match /users/{userId} {
+      <span class="f">allow read</span>: <span class="k">if</span> isOwner(userId);
+
+      <span class="c">// Primera foto: setDoc(merge) sobre un documento que no existe</span>
+      <span class="f">allow create</span>: <span class="k">if</span> isOwner(userId)
+        &amp;&amp; request.resource.data.keys().hasOnly(['photoURL'])
+        &amp;&amp; isValidPhoto(request.resource.data.photoURL);
+
+      <span class="c">// Fotos siguientes: solo puede cambiar photoURL</span>
+      <span class="f">allow update</span>: <span class="k">if</span> isOwner(userId)
+        &amp;&amp; request.resource.data.diff(resource.data).affectedKeys().hasOnly(['photoURL'])
+        &amp;&amp; isValidPhoto(request.resource.data.photoURL);
+
+      <span class="f">allow delete</span>: <span class="k">if</span> false;
+    }
+  }
+}</code></pre>
+
+  <h3>Qué protege cada condición del bloque <code>users</code></h3>
+  <div class="table-scroll">
+  <table>
+    <tr><th>Condición</th><th>Qué exige</th><th>Qué evita</th></tr>
+    <tr><td><code>isOwner(userId)</code></td><td>Sesión iniciada y <code>request.auth.uid</code> igual al ID del documento.</td><td>Que alguien sin sesión, o con otra cuenta, lea o cambie tu foto.</td></tr>
+    <tr><td><code>keys().hasOnly(['photoURL'])</code></td><td>Al crear, el documento solo puede tener <code>photoURL</code>.</td><td>Que un cliente modificado se cree el perfil con campos como <code>role: 'admin'</code>.</td></tr>
+    <tr><td><code>diff(…).affectedKeys().hasOnly(['photoURL'])</code></td><td>Al actualizar, el único campo que cambia es <code>photoURL</code>.</td><td>Lo mismo en updates. <code>keys()</code> no sirve acá: incluye también los campos que no cambiaron.</td></tr>
+    <tr><td><code>isValidPhoto(…)</code></td><td>Texto de 1 a 2048 caracteres, o <code>null</code>.</td><td>Números, objetos o textos gigantes guardados en <code>photoURL</code>.</td></tr>
+    <tr><td><code>allow delete: if false</code></td><td>Nadie borra perfiles desde la app.</td><td>Borrados accidentales. Si más adelante hace falta, se habilita a propósito.</td></tr>
+  </table>
+  </div>
+
+  <div class="box key">
+    <div class="box-t">Cuando el perfil crezca</div>
+    <p>Si agregás <code>displayName</code> o <code>bio</code> al documento, sumalos a las dos listas: <code>hasOnly(['photoURL', 'displayName'])</code>. Si no, las reglas van a rechazar esa escritura, y está bien que lo hagan: es la lista de campos permitidos.</p>
+  </div>
+
+  <div class="demo">
+    <div class="demo-head"><span class="demo-tag">Simulador</span><h3>¿Estas reglas dejan pasar la escritura?</h3></div>
+    <p class="demo-sub">Cada caso es una petición real que podría llegar a Firestore. El simulador evalúa las mismas condiciones del archivo de arriba, en el mismo orden.</p>
+    <div class="controls">
+      <div class="seg" role="group" aria-label="Caso a evaluar" id="rl-cases"></div>
+    </div>
+    <div class="demo-grid even">
+      <div>
+        <div class="ctrl-label" style="margin-bottom:6px">Petición</div>
+        <pre id="rl-request" style="min-height:170px"><code></code></pre>
+      </div>
+      <div>
+        <div class="ctrl-label" style="margin-bottom:6px">Evaluación</div>
+        <div class="log" id="rl-log" style="min-height:170px"></div>
+      </div>
+    </div>
+    <div class="metric-row" style="margin-top:14px;margin-bottom:0">
+      <div class="metric" id="rl-m-rule"><div class="m-label">Reglas</div><div class="m-value" id="rl-v-rule">—</div></div>
+      <div class="metric" id="rl-m-redux"><div class="m-label">Redux</div><div class="m-value" id="rl-v-redux">—</div></div>
+      <div class="metric" id="rl-m-ui"><div class="m-label">Lo que ve el usuario</div><div class="m-value" id="rl-v-ui" style="font-size:15px">—</div></div>
+    </div>
+  </div>
+
+  <div class="box firebase">
+    <div class="box-t">Probalas antes de publicar</div>
+    <p>En la misma pestaña “Reglas” está el simulador de la consola (Rules Playground). Elegí <b>update</b> y la ruta <code>/users/UID_DE_PRUEBA</code>, activá “Autenticado” con ese UID y cargá <code>{"photoURL": "file:///foto.jpg"}</code>. Después cambiá el UID por otro: tiene que dar <b>denegado</b>.</p>
+  </div>
+
+  <h3>Para producción: la foto en Cloud Storage</h3>
+  <p>
+    La entrega guarda la <code>uri</code> local. El paso siguiente es subir el archivo a Cloud Storage y guardar en
+    <code>photoURL</code> la URL <code>https://</code> que devuelve <code>getDownloadURL</code>. Las reglas de Firestore
+    no cambian (<code>isValidPhoto</code> acepta cualquier texto válido), pero Storage necesita las suyas.
+  </p>
+
+  <div class="box warn">
+    <div class="box-t">Storage requiere plan Blaze</div>
+    <p>Desde febrero de 2026, usar un bucket de Cloud Storage for Firebase exige tener el proyecto en el plan <b>Blaze</b> (pago por uso, con capa gratuita). Es una razón práctica para que la entrega del curso no dependa de Storage.</p>
+  </div>
+
+  <div class="file-label">storage.rules · opcional, no lo usa el código actual</div>
+  <pre class="fb"><code>rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /avatars/{userId}/{fileName} {
+      <span class="c">// Cualquier usuario con sesión puede ver avatares</span>
+      allow read: <span class="k">if</span> request.auth != null;
+
+      <span class="c">// Solo el dueño sube: imagen de menos de 2 MB</span>
+      allow create, update: <span class="k">if</span> request.auth != null
+        &amp;&amp; request.auth.uid == userId
+        &amp;&amp; request.resource.size &lt; 2 * 1024 * 1024
+        &amp;&amp; request.resource.contentType.matches('image/.*');
+
+      <span class="c">// En un delete no hay request.resource: se valida aparte</span>
+      allow delete: <span class="k">if</span> request.auth != null
+        &amp;&amp; request.auth.uid == userId;
+    }
+  }
+}</code></pre>
+
+  <div class="file-label">Boceto del lado de la app · no está en el repo</div>
+  <pre><code><span class="k">import</span> { getStorage, ref, uploadBytes, getDownloadURL } <span class="k">from</span> 'firebase/storage'
+
+<span class="k">const</span> storage = getStorage(app)
+
+<span class="k">export const</span> uploadAvatar = <span class="k">async</span> (userId: string, uri: string) =&gt; {
+  <span class="k">const</span> blob = <span class="k">await</span> (<span class="k">await</span> fetch(uri)).blob()     <span class="c">// file:// → Blob</span>
+  <span class="k">const</span> avatarRef = ref(storage, `avatars/${userId}/avatar.jpg`)
+
+  <span class="k">await</span> uploadBytes(avatarRef, blob, { contentType: 'image/jpeg' })
+  <span class="k">return</span> getDownloadURL(avatarRef)                  <span class="c">// https://... → photoURL</span>
+}</code></pre>
+</section>
+<hr>
+
+<section id="entrega">
+  <span class="sec-num">Sección 5</span>
+  <h2>Entrega final: TaskFlow listo para producción</h2>
+  <p class="lede">Este módulo no suma otra feature: consolida todo lo anterior. Registro, tareas sincronizadas, navegación, perfil con foto y cierre de sesión tienen que funcionar como un único flujo.</p>
+
+  <h3>Cómo se reparten los 100 puntos</h3>
+  <div class="table-scroll">
+  <table>
+    <tr><th>Criterio</th><th>Qué se mira</th><th style="width:34%">Peso</th></tr>
+    <tr><td><b>Funcionalidad central</b></td><td>Registro y login con Firebase Auth, tareas en Firestore por usuario, datos coherentes entre sesiones.</td><td class="num"><div class="bar"><span style="width:87.5%"></span></div>35</td></tr>
+    <tr><td><b>Redux Toolkit</b></td><td>Slices, acciones y selectores para tareas y perfil.</td><td class="num"><div class="bar"><span style="width:50%"></span></div>20</td></tr>
+    <tr><td><b>Navegación</b></td><td>Stack para login y detalle, Bottom Tabs para las secciones, cambios de sesión fluidos.</td><td class="num"><div class="bar"><span style="width:37.5%"></span></div>15</td></tr>
+    <tr><td><b>Perfil y avatar</b></td><td><code>expo-image-picker</code>, caso de cancelación y avatar bien mostrado.</td><td class="num"><div class="bar"><span style="width:30%"></span></div>12</td></tr>
+    <tr><td><b>Robustez</b></td><td>Estable al cancelar, sin conexión y ante errores comunes.</td><td class="num"><div class="bar"><span style="width:25%"></span></div>10</td></tr>
+    <tr><td><b>Calidad de entrega</b></td><td>Código limpio, reglas de seguridad, publicación en Expo/EAS, README con evidencia visual.</td><td class="num"><div class="bar"><span style="width:20%"></span></div>8</td></tr>
+  </table>
+  </div>
+  <p class="note" style="margin-top:-8px">Escala de las barras: 0 a 40 puntos. Total: 100 · Aprobación: 70.</p>
+
+  <h3>Checklist antes de entregar</h3>
+  <div class="cols">
+    <div class="box firebase">
+      <div class="box-t">Firebase</div>
+      <ul class="check-list">
+        <li>Reglas de la sección 4 publicadas: <code>tasks</code> y <code>users</code> en el mismo archivo.</li>
+        <li>La base <b>no</b> quedó en modo de prueba.</li>
+        <li>Con dos cuentas distintas, cada una ve solo sus tareas y su foto.</li>
+      </ul>
+    </div>
+    <div class="box good">
+      <div class="box-t">Flujo completo</div>
+      <ul class="check-list">
+        <li>Login → Tareas → Perfil → cambiar foto → el header de Tareas ya la muestra.</li>
+        <li>Logout → Login: la foto sigue ahí (viene de <code>users/{uid}</code>).</li>
+        <li>Cancelar la galería o negar el permiso no rompe nada.</li>
+      </ul>
+    </div>
+    <div class="box">
+      <div class="box-t">Código</div>
+      <ul class="check-list">
+        <li>Sin <code>console.log</code> de prueba ni código comentado muerto.</li>
+        <li><code>.gitignore</code> con <code>node_modules/</code>.</li>
+        <li><code>firebase.example.ts</code> con valores de ejemplo, no con las credenciales reales del proyecto.</li>
+      </ul>
+    </div>
+    <div class="box">
+      <div class="box-t">Repositorio y publicación</div>
+      <ul class="check-list">
+        <li>README con <code>npm install</code> y <code>npx expo start</code>.</li>
+        <li>Capturas o GIF: login, lista de tareas y edición del perfil.</li>
+        <li>Link de EAS Update para abrir en Expo Go.</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3>Publicar con EAS Update</h3>
+  <p>El material menciona <code>npx expo publish</code>: ese comando pertenece al servicio clásico de Expo, que ya no existe. Hoy se publica con EAS:</p>
+  <pre><code>npm install -g eas-cli
+eas login
+eas update:configure                                   <span class="c"># una sola vez por proyecto</span>
+eas update --branch preview --message "Entrega final"</code></pre>
+
+  <div class="box warn">
+    <div class="box-t">Probá también sin conexión</div>
+    <p>Poné el teléfono en modo avión y cambiá la foto. Firestore deja la escritura pendiente hasta que vuelve la red, así que el <code>await</code> no termina enseguida. La app no tiene que cerrarse, y el spinner, que solo cubre el avatar, no debería bloquear el resto de la pantalla.</p>
+  </div>
+</section>
+
+<footer>
+  <p style="margin:0"><b>TaskFlow · Módulo 8 — Perfil, avatar y reglas de Firebase</b><br>Material de apoyo para clase. Los diagramas y demos están embebidos en el archivo y funcionan sin conexión (salvo la tipografía).</p>
+</footer>
+
+</div>
+
+<script>
+/* Imágenes de ejemplo (SVG embebido, sin dependencias) */
+const PHOTO = 'data:image/svg+xml;utf8,' + encodeURIComponent(
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 200">' +
+  '<defs><linearGradient id="s" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FF9A6B"/><stop offset="1" stop-color="#FFE1B8"/></linearGradient></defs>' +
+  '<rect width="300" height="200" fill="url(#s)"/>' +
+  '<circle cx="150" cy="92" r="30" fill="#FFF4D6"/>' +
+  '<path d="M0 150 L70 88 L120 132 L175 70 L240 128 L300 96 L300 200 L0 200Z" fill="#7A3A22"/>' +
+  '<path d="M0 172 L90 128 L160 168 L230 138 L300 162 L300 200 L0 200Z" fill="#2A1008"/>' +
+  '<circle cx="22" cy="22" r="10" fill="#1F8A5B"/><circle cx="278" cy="22" r="10" fill="#4A6CF0"/>' +
+  '</svg>'
+)
+const FALLBACK = 'data:image/svg+xml;utf8,' + encodeURIComponent(
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">' +
+  '<rect width="100" height="100" fill="#E3D9C9"/>' +
+  '<circle cx="50" cy="40" r="18" fill="#A2988B"/>' +
+  '<path d="M16 96 C20 70 36 62 50 62 C64 62 80 70 84 96Z" fill="#A2988B"/>' +
+  '</svg>'
+)
+
+function el(tag, attrs, text) {
+  const node = document.createElement(tag)
+  Object.entries(attrs || {}).forEach(([k, v]) => node.setAttribute(k, v))
+  if (text != null) node.textContent = text
+  return node
+}
+
+function press(buttons, active) {
+  buttons.forEach(b => b.setAttribute('aria-pressed', String(b === active)))
+}
+
+/* Demo 1 · tres finales de pickImage() */
+;(function () {
+  const screen = document.getElementById('pk-screen')
+  const result = document.querySelector('#pk-result code')
+  const note = document.getElementById('pk-note')
+  const btns = { ok: 'pk-ok', cancel: 'pk-cancel', deny: 'pk-deny' }
+  const all = Object.values(btns).map(id => document.getElementById(id))
+
+  const cases = {
+    ok: {
+      photo: PHOTO,
+      status: 'Foto guardada en users/{uid}',
+      result:
+        '{\n' +
+        '  canceled: false,\n' +
+        '  assets: [{\n' +
+        "    uri: 'file:///data/user/0/…/ImagePicker/8c1f2a7e.jpeg',\n" +
+        '    width: 1080,\n' +
+        '    height: 1080,\n' +
+        "    mimeType: 'image/jpeg',\n" +
+        "    type: 'image'\n" +
+        '  }]\n' +
+        '}',
+      note: '<b>Camino feliz.</b> Se lee <code>result.assets[0].uri</code> y se llama a <code>savePhoto(uri)</code>. Los valores son de ejemplo.',
+    },
+    cancel: {
+      photo: FALLBACK,
+      status: 'Sin cambios',
+      result: '{\n  canceled: true,\n  assets: null\n}',
+      note: '<b>No es un error.</b> Si leyéramos <code>assets[0]</code> sin preguntar por <code>canceled</code>, la app se rompería con <code>null</code>. Por eso va <code>if (result.canceled) return</code>.',
+    },
+    deny: {
+      photo: FALLBACK,
+      status: 'Sin cambios',
+      alert: true,
+      result:
+        '// launchImageLibraryAsync no llega a ejecutarse\n' +
+        '{\n' +
+        "  status: 'denied',\n" +
+        '  granted: false,\n' +
+        '  canAskAgain: true,\n' +
+        "  expires: 'never'\n" +
+        '}',
+      note: '<b>El usuario manda.</b> Con <code>status !== \'granted\'</code> explicamos para qué pedimos el permiso y salimos. La pantalla queda estable.',
+    },
+  }
+
+  function paint(key) {
+    const c = cases[key]
+    press(all, document.getElementById(btns[key]))
+    screen.replaceChildren()
+
+    const avatar = el('div', { class: 'rn-avatar', style: 'width:88px;height:88px' })
+    avatar.append(el('img', { src: c.photo, alt: c.photo === PHOTO ? 'Foto elegida' : 'Avatar por defecto', style: 'object-fit:cover' }))
+    avatar.append(el('span', { class: 'rn-badge', 'aria-hidden': 'true' }, '✎'))
+    screen.append(avatar)
+    screen.append(el('div', { class: 's-name' }, 'estudiante@taskflow.app'))
+    screen.append(el('div', { class: 's-muted' }, c.status))
+
+    if (c.alert) {
+      const overlay = el('div', { class: 'rn-alert' })
+      const dialog = el('div')
+      dialog.append(el('b', {}, 'Permisos requeridos'))
+      dialog.append(document.createTextNode('Necesitamos acceso a tu galería para cambiar la foto de perfil.'))
+      dialog.append(el('span', {}, 'OK'))
+      overlay.append(dialog)
+      screen.append(overlay)
+    }
+
+    result.textContent = c.result
+    note.innerHTML = c.note
+  }
+
+  Object.entries(btns).forEach(([key, id]) =>
+    document.getElementById(id).addEventListener('click', () => paint(key))
+  )
+  paint('ok')
+})()
+
+/* Demo 2 · tamaño y resizeMode */
+;(function () {
+  const box = document.getElementById('av-box')
+  const img = document.getElementById('av-img')
+  const code = document.querySelector('#av-code code')
+  const note = document.getElementById('av-note')
+  const sizeBtns = [40, 88, 150].map(s => document.getElementById('av-' + s))
+  const modeBtns = ['cover', 'contain', 'stretch'].map(m => document.getElementById('rm-' + m))
+  const fit = { cover: 'cover', contain: 'contain', stretch: 'fill' }
+  const notes = {
+    cover: '<b>cover:</b> la foto llena el círculo y se recortan los costados. Es el modo por defecto y el correcto para avatares.',
+    contain: '<b>contain:</b> la foto entra entera, pero quedan franjas vacías arriba y abajo porque es apaisada.',
+    stretch: '<b>stretch:</b> la foto se estira para llenar el cuadrado. Mirá el sol: dejó de ser un círculo.',
+  }
+  const state = { size: 88, mode: 'cover' }
+  img.src = PHOTO
+
+  function paint() {
+    press(sizeBtns, document.getElementById('av-' + state.size))
+    press(modeBtns, document.getElementById('rm-' + state.mode))
+    box.style.width = state.size + 'px'
+    box.style.height = state.size + 'px'
+    box.querySelector('.rn-badge').hidden = state.size < 88
+    img.style.objectFit = fit[state.mode]
+
+    code.textContent =
+      'const AVATAR_SIZE = ' + state.size + '\n\n' +
+      '<Image\n' +
+      '  source={{ uri: user.photoURL }}\n' +
+      '  resizeMode="' + state.mode + '"\n' +
+      '  style={{\n' +
+      '    width: AVATAR_SIZE,             // ' + state.size + '\n' +
+      '    height: AVATAR_SIZE,            // ' + state.size + '\n' +
+      '    borderRadius: AVATAR_SIZE / 2,  // ' + state.size / 2 + '\n' +
+      '  }}\n' +
+      '/>'
+    note.innerHTML = notes[state.mode]
+  }
+
+  sizeBtns.forEach(b => b.addEventListener('click', () => { state.size = Number(b.id.slice(3)); paint() }))
+  modeBtns.forEach(b => b.addEventListener('click', () => { state.mode = b.id.slice(3); paint() }))
+  paint()
+})()
+
+/* Demo 3 · simulador de reglas de users/{userId} */
+;(function () {
+  const wrap = document.getElementById('rl-cases')
+  const request = document.querySelector('#rl-request code')
+  const log = document.getElementById('rl-log')
+  const mRule = document.getElementById('rl-m-rule')
+  const vRule = document.getElementById('rl-v-rule')
+  const vRedux = document.getElementById('rl-v-redux')
+  const vUi = document.getElementById('rl-v-ui')
+
+  const OLD = "'file:///…/8c1f2a7e.jpeg'"
+  const NEW = "'file:///…/b7d09c41.jpeg'"
+
+  // Cada check: [texto, true | false]. Tras el primer false, el resto no se evalúa (&& corta).
+  const cases = [
+    {
+      id: 'first', label: 'Primera foto',
+      req: ['op:      create   (setDoc merge, el doc no existe)', 'path:    /users/uid_ana', "auth:    { uid: 'uid_ana' }", 'antes:   (no existe)', 'después: { photoURL: ' + NEW + ' }'],
+      rule: 'allow create',
+      checks: [["isOwner('uid_ana') → 'uid_ana' == 'uid_ana'", true], ["keys() = ['photoURL'] → hasOnly(['photoURL'])", true], ['isValidPhoto → string entre 1 y 2048 caracteres', true]],
+      redux: 'setUserPhoto', ui: 'Nueva foto en Perfil y en el header',
+    },
+    {
+      id: 'update', label: 'Cambia su foto',
+      req: ['op:      update   (setDoc merge)', 'path:    /users/uid_ana', "auth:    { uid: 'uid_ana' }", 'antes:   { photoURL: ' + OLD + ' }', 'después: { photoURL: ' + NEW + ' }'],
+      rule: 'allow update',
+      checks: [["isOwner('uid_ana') → 'uid_ana' == 'uid_ana'", true], ["affectedKeys() = ['photoURL'] → hasOnly(['photoURL'])", true], ['isValidPhoto → string entre 1 y 2048 caracteres', true]],
+      redux: 'setUserPhoto', ui: 'Nueva foto en Perfil y en el header',
+    },
+    {
+      id: 'anon', label: 'Sin sesión',
+      req: ['op:      update', 'path:    /users/uid_ana', 'auth:    null', 'antes:   { photoURL: ' + OLD + ' }', "después: { photoURL: 'https://sitio-malicioso/x.png' }"],
+      rule: 'allow update',
+      checks: [['isOwner → isSignedIn() → request.auth es null', false], ['affectedKeys().hasOnly(...)', null], ['isValidPhoto(...)', null]],
+      redux: 'sin cambios', ui: 'En la app no pasa: sin sesión no se monta Perfil. Un cliente modificado recibe permission-denied',
+    },
+    {
+      id: 'other', label: 'Perfil de otro',
+      req: ['op:      update', 'path:    /users/uid_bruno', "auth:    { uid: 'uid_ana' }", 'antes:   { photoURL: ' + OLD + ' }', 'después: { photoURL: ' + NEW + ' }'],
+      rule: 'allow update',
+      checks: [["isOwner('uid_bruno') → 'uid_ana' != 'uid_bruno'", false], ['affectedKeys().hasOnly(...)', null], ['isValidPhoto(...)', null]],
+      redux: 'sin cambios', ui: 'Alert: No se pudo guardar la foto',
+    },
+    {
+      id: 'extra', label: 'Cuela role: admin',
+      req: ['op:      update   (setDoc merge)', 'path:    /users/uid_ana', "auth:    { uid: 'uid_ana' }", 'antes:   { photoURL: ' + OLD + ' }', 'después: { photoURL: ' + NEW + ",\n           role: 'admin' }"],
+      rule: 'allow update',
+      checks: [["isOwner('uid_ana') → 'uid_ana' == 'uid_ana'", true], ["affectedKeys() = ['photoURL', 'role'] → hasOnly(['photoURL'])", false], ['isValidPhoto(...)', null]],
+      redux: 'sin cambios', ui: 'Nadie se da permisos de admin',
+    },
+    {
+      id: 'type', label: 'photoURL: 42',
+      req: ['op:      update', 'path:    /users/uid_ana', "auth:    { uid: 'uid_ana' }", 'antes:   { photoURL: ' + OLD + ' }', 'después: { photoURL: 42 }'],
+      rule: 'allow update',
+      checks: [["isOwner('uid_ana') → 'uid_ana' == 'uid_ana'", true], ["affectedKeys() = ['photoURL'] → hasOnly(['photoURL'])", true], ['isValidPhoto → 42 no es string', false]],
+      redux: 'sin cambios', ui: '<Image> nunca recibe un source inválido',
+    },
+    {
+      id: 'read', label: 'Lee el perfil de otro',
+      req: ['op:      get', 'path:    /users/uid_bruno', "auth:    { uid: 'uid_ana' }"],
+      rule: 'allow read',
+      checks: [["isOwner('uid_bruno') → 'uid_ana' != 'uid_bruno'", false]],
+      redux: 'sin cambios', ui: 'getDoc rechazado: la foto de Bruno es privada',
+    },
+  ]
+
+  const buttons = cases.map(c => {
+    const b = el('button', { id: 'rl-case-' + c.id, type: 'button', 'aria-pressed': 'false' }, c.label)
+    b.addEventListener('click', () => paint(c))
+    wrap.append(b)
+    return b
+  })
+
+  function paint(c) {
+    press(buttons, document.getElementById('rl-case-' + c.id))
+    request.textContent = c.req.join('\n')
+    log.replaceChildren()
+    log.append(el('div', { class: 'info' }, 'match /users/{userId} → ' + c.rule))
+
+    let allowed = true
+    c.checks.forEach(([text, pass]) => {
+      if (pass === null || !allowed) {
+        log.append(el('div', {}, '·  ' + text + '  (no se evalúa)'))
+        return
+      }
+      log.append(el('div', { class: pass ? 'ok' : 'bad' }, (pass ? '✓  ' : '✕  ') + text))
+      if (!pass) allowed = false
+    })
+    log.append(el('div', { class: allowed ? 'ok' : 'bad' }, allowed ? '→ escritura aceptada' : "→ FirebaseError: 'permission-denied'"))
+
+    vRule.textContent = allowed ? 'PERMITIDO' : 'DENEGADO'
+    mRule.className = 'metric ' + (allowed ? 'is-ok' : 'is-bad')
+    vRedux.textContent = c.redux
+    vUi.textContent = c.ui
+  }
+
+  paint(cases[0])
+})()
+</script>
+
+</body>
+</html>
